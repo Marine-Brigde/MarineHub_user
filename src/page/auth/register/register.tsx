@@ -1,0 +1,50 @@
+
+import { RegisterForm } from "@/components/auth/regisster-form"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Anchor } from "lucide-react"
+import { Link } from "react-router-dom"
+
+
+export default function RegisterPage() {
+    return (
+        <div className="min-h-screen bg-background flex items-center justify-center p-4" style={{ overflow: "hidden", position: "relative" }}>
+            <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover z-0 transition duration-300 group-hover:blur-sm"
+
+                src="/541277703_24864000929890843_2493772521354789360_n.mp4"
+            />
+            <div className="w-full max-w-md relative z-10">
+                <div className="w-full max-w-md">
+                    <div className="text-center mb-8">
+                        <Link to="/" className="inline-flex items-center gap-2 mb-4">
+                            <Anchor className="h-8 w-8 text-primary" />
+                            <span className="text-2xl font-bold text-foreground">MaritimeHub</span>
+                        </Link>
+                    </div>
+
+                    <Card>
+                        <CardHeader className="text-center">
+                            <CardTitle className="text-2xl">Đăng ký Xưởng sửa chữa</CardTitle>
+                            <CardDescription>Tạo tài khoản xưởng sửa chữa MaritimeHub mới</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <RegisterForm />
+                            <div className="mt-6 text-center">
+                                <p className="text-sm text-muted-foreground">
+                                    Đã có tài khoản?{" "}
+                                    <Link to="/login" className="text-primary hover:underline">
+                                        Đăng nhập
+                                    </Link>
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        </div>
+    )
+}

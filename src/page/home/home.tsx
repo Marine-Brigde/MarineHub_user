@@ -1,14 +1,14 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Anchor, Ship, Wrench, Package, MapPin, Clock, LogIn } from "lucide-react"
+import { Anchor, Ship, Wrench, Package, MapPin, Clock, LogIn, Users, TrendingUp, Shield, Star } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 
 import Header from "@/components/common/header";
 
 
 export default function HomePage() {
-
-
+    const navigate = useNavigate()
 
     return (
         <div className="min-h-screen bg-background">
@@ -144,6 +144,104 @@ export default function HomePage() {
                                 </div>
                             </CardContent>
                         </Card>
+                    </div>
+                </div>
+            </section>
+
+            {/* Become Supplier Section */}
+            <section className="py-20 px-4 bg-gradient-to-br from-primary/5 via-background to-accent/5">
+                <div className="container mx-auto max-w-6xl">
+                    <div className="text-center mb-16">
+                        <Badge className="mb-5 bg-primary/10 text-primary text-sm border-primary/20">
+                            <Users className="mr-2 h-4 w-4" />
+                            Đối tác tin cậy
+                        </Badge>
+                        <h3 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
+                            Trở thành <span className="text-primary">Nhà cung cấp</span> của chúng tôi
+                        </h3>
+                        <p className="text-muted-foreground text-lg max-w-3xl mx-auto">
+                            Tham gia mạng lưới nhà cung cấp hàng hải hàng đầu và mở rộng cơ hội kinh doanh của bạn 
+                            với hàng nghìn chủ tàu và xưởng sửa chữa trên toàn quốc.
+                        </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                        <div className="text-center">
+                            <div className="p-4 bg-primary/10 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                                <TrendingUp className="h-8 w-8 text-primary" />
+                            </div>
+                            <h4 className="font-semibold text-foreground mb-2">Tăng doanh thu</h4>
+                            <p className="text-sm text-muted-foreground">Tiếp cận thị trường lớn hơn với hàng nghìn khách hàng tiềm năng</p>
+                        </div>
+                        <div className="text-center">
+                            <div className="p-4 bg-primary/10 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                                <Shield className="h-8 w-8 text-primary" />
+                            </div>
+                            <h4 className="font-semibold text-foreground mb-2">Thanh toán an toàn</h4>
+                            <p className="text-sm text-muted-foreground">Hệ thống thanh toán bảo mật và đảm bảo giao dịch</p>
+                        </div>
+                        <div className="text-center">
+                            <div className="p-4 bg-primary/10 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                                <Users className="h-8 w-8 text-primary" />
+                            </div>
+                            <h4 className="font-semibold text-foreground mb-2">Hỗ trợ chuyên nghiệp</h4>
+                            <p className="text-sm text-muted-foreground">Đội ngũ hỗ trợ 24/7 và công cụ quản lý hiện đại</p>
+                        </div>
+                        <div className="text-center">
+                            <div className="p-4 bg-primary/10 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                                <Star className="h-8 w-8 text-primary" />
+                            </div>
+                            <h4 className="font-semibold text-foreground mb-2">Xây dựng uy tín</h4>
+                            <p className="text-sm text-muted-foreground">Hệ thống đánh giá và phản hồi giúp xây dựng thương hiệu</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-card border border-primary/20 rounded-2xl p-8 md:p-12">
+                        <div className="grid md:grid-cols-2 gap-8 items-center">
+                            <div>
+                                <h4 className="text-2xl font-bold text-foreground mb-4">
+                                    Sẵn sàng bắt đầu hành trình cùng chúng tôi?
+                                </h4>
+                                <p className="text-muted-foreground mb-6">
+                                    Đăng ký trở thành nhà cung cấp ngay hôm nay và tận dụng cơ hội mở rộng 
+                                    kinh doanh trong lĩnh vực hàng hải đầy tiềm năng.
+                                </p>
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                        <span className="text-sm text-foreground">Đăng ký miễn phí và nhanh chóng</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                        <span className="text-sm text-foreground">Hướng dẫn chi tiết từ đội ngũ chuyên gia</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                        <span className="text-sm text-foreground">Truy cập vào thị trường khách hàng rộng lớn</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="text-center md:text-right">
+                                <div className="inline-flex flex-col gap-4">
+                                    <Button 
+                                        size="lg" 
+                                        className="w-full md:w-auto bg-primary hover:bg-primary/90"
+                                        onClick={() => navigate('/supplier-register')}
+                                    >
+                                        <Package className="mr-2 h-5 w-5" />
+                                        Trở thành Nhà cung cấp
+                                    </Button>
+                                    <Button 
+                                        size="lg" 
+                                        variant="outline" 
+                                        className="w-full md:w-auto"
+                                        onClick={() => navigate('/supplier-register')}
+                                    >
+                                        Đăng kí ngay
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>

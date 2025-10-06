@@ -1,6 +1,7 @@
 
 import LoginPage from '@/page/auth/login/login';
 import RegisterPage from '@/page/auth/register/register';
+import SupplierRegisterPage from '@/page/auth/supplier-register/supplier-register';
 import HomePage from '@/page/home/home';
 import RepairShopDashboardPage from '@/page/repair-shop/dashboard/dasboard';
 import RepairShopLayout from '@/page/repair-shop/layout';
@@ -22,6 +23,10 @@ const router = createBrowserRouter([
     {
         path: '/register',
         element: <RegisterPage />,
+    },
+    {
+        path: '/supplier-register',
+        element: <SupplierRegisterPage />,
     },
     {
         path: '/repair-shop/dashboard',

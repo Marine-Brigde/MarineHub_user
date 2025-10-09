@@ -1,8 +1,11 @@
+
 import { useEffect, useRef, useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import type { FeatureCollection, Polygon } from 'geojson';
+import maplibregl from 'maplibre-gl'; // Import maplibregl để TypeScript nhận diện
 
 // Goong API keys
 const MAP_KEY = 'ebt7JiGUl4WpHtDy5kpe4JB299y5TAm63e9My9Z6';
@@ -16,6 +19,7 @@ export function MapComponent({ onLocationSelect }: MapComponentProps) {
     const mapContainer = useRef<HTMLDivElement | null>(null);
     const map = useRef<maplibregl.Map | null>(null);
     const [query, setQuery] = useState('');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [suggestions, setSuggestions] = useState<any[]>([]);
     const [error, setError] = useState('');
     const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -35,7 +39,7 @@ export function MapComponent({ onLocationSelect }: MapComponentProps) {
             });
 
             // Add click event for manual marker placement
-            map.current.on('click', (e) => {
+            map.current.on('click', (e: maplibregl.MapMouseEvent) => {
                 const lngLat: [number, number] = [e.lngLat.lng, e.lngLat.lat];
                 fetchReverseGeocode(lngLat);
             });
@@ -84,15 +88,16 @@ export function MapComponent({ onLocationSelect }: MapComponentProps) {
             new maplibregl.Marker().setLngLat(lngLat).addTo(map.current);
 
             // Add circle
-            const circleData = {
+            const circleData: FeatureCollection<Polygon> = {
                 type: 'FeatureCollection',
                 features: [
                     {
                         type: 'Feature',
                         geometry: {
                             type: 'Polygon',
-                            coordinates: [drawCircle(lngLat, 500)], // 500m radius
+                            coordinates: [drawCircle(lngLat, 500)],
                         },
+                        properties: {}, // thêm properties cho đúng chuẩn GeoJSON
                     },
                 ],
             };

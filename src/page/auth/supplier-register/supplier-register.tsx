@@ -27,17 +27,17 @@ export default function SupplierRegisterPage() {
             {/* Overlay mờ để làm mềm video */}
             <div className="absolute inset-0 bg-black/20 z-0" />
             <div className="w-full max-w-2xl relative z-10">
-                <div className="mb-6">
+                <div className="mb-2">
                     <Button
                         variant="ghost"
                         onClick={() => navigate(-1)}
                         className="mb-4 bg-background/80 backdrop-blur-sm hover:bg-background/90"
                     >
-                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        <ArrowLeft />
                         Quay lại
                     </Button>
                 </div>
-                
+
                 <Card className="bg-background/90 backdrop-blur-sm border-background/20">
                     <CardContent className="p-8">
                         <SupplierRegisterForm />

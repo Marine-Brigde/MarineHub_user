@@ -5,7 +5,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
 import { Eye, EyeOff, LogIn } from "lucide-react"
 
 
@@ -61,18 +61,7 @@ export function LoginForm() {
                 </div>
             </div>
 
-            <div className="space-y-2">
-                <Label htmlFor="role">Vai trò</Label>
-                <Select value={formData.role} onValueChange={(value) => setFormData((prev) => ({ ...prev, role: value }))}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Chọn vai trò của bạn" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="supplier">Nhà cung cấp</SelectItem>
-                        <SelectItem value="repair-shop">Xưởng sửa chữa</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
+
 
             <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (

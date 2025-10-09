@@ -67,6 +67,7 @@ export function SupplierRegisterForm() {
             } else {
                 setError(res.message || "Lỗi khi gửi OTP");
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             const message = err?.message || "Lỗi kết nối mạng";
             setError(message);
@@ -88,6 +89,7 @@ export function SupplierRegisterForm() {
             } else {
                 return { success: false, error: res.message || "Lỗi khi đăng ký" };
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             const message = err?.message || "Lỗi kết nối mạng";
             return { success: false, error: message };

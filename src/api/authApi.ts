@@ -14,13 +14,13 @@ export const authApi = {
 
     // ✉️ Gửi OTP
     sendOtp: (data: OtpRequest): Promise<ApiResponse<string>> => {
-        const url = '/api/v1/auth/otp'
+        const url = '/v1/auth/otp'
         return axiosClient.post(url, data)
     },
 
     // 📝 Đăng ký (multipart/form-data)
     register: (data: RegisterRequest): Promise<ApiResponse<RegisterResponseData>> => {
-        const url = '/api/v1/auth/register'
+        const url = '/v1/auth/register'
         const formData = new FormData()
         formData.append('FullName', data.FullName)
         formData.append('Username', data.Username)
@@ -38,7 +38,7 @@ export const authApi = {
 
     // 🌍 OAuth (Google Login)
     oauth: (data: OAuthRequest): Promise<ApiResponse<OAuthResponseData>> => {
-        const url = '/api/v1/auth/oauth'
+        const url = '/v1/auth/oauth'
         return axiosClient.post(url, data)
     }
 }

@@ -1,6 +1,6 @@
 // src/api/authApi.ts
 
-import type { LoginRequest, LoginResponseData, OAuthRequest, OAuthResponseData, OtpRequest, RegisterRequest, RegisterResponseData } from "@/models/Auth"
+import type { LoginRequest, LoginResponseData, OtpRequest, RegisterRequest, RegisterResponseData } from "@/models/Auth"
 import type { ApiResponse } from "@/types/api"
 import axiosClient from "./axiosClient"
 
@@ -35,10 +35,5 @@ export const authApi = {
             headers: { 'Content-Type': 'multipart/form-data' }
         })
     },
-
-    // 🌍 OAuth (Google Login)
-    oauth: (data: OAuthRequest): Promise<ApiResponse<OAuthResponseData>> => {
-        const url = '/v1/auth/oauth'
-        return axiosClient.post(url, data)
-    }
 }
+

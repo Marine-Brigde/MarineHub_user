@@ -42,16 +42,4 @@ export interface RegisterResponseData {
     role: Role
 }
 
-// 🌍 OAuth (Google, v.v.)
-export interface OAuthRequest {
-    code: string
-    isAndroid: boolean
-}
 
-export interface OAuthResponseData {
-    accountId: string
-    username: string
-    email: string
-    accessToken: string
-    role: Role
-}

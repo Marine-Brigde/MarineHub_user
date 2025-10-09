@@ -1,35 +1,72 @@
-"use client"
+"use client";
 
-
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-
-import { Eye, EyeOff, LogIn } from "lucide-react"
-
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Eye, EyeOff, LogIn } from "lucide-react";
+import { authApi } from "@/api/authApi";
+import type { LoginRequest, LoginResponseData } from "@/models/Auth"; // Updated import path
+import type { ApiResponse } from "@/types/api"; // Import ApiResponse type
 
 export function LoginForm() {
-    const [showPassword, setShowPassword] = useState(false)
-    const [isLoading] = useState(false)
-    const [formData, setFormData] = useState({
-        email: "",
+    const [showPassword, setShowPassword] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [formData, setFormData] = useState<LoginRequest>({
+        usernameOrEmail: "",
         password: "",
-        role: "",
-    })
+    });
+    const [error, setError] = useState<string | null>(null);
+    const navigate = useNavigate();
 
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError(null);
 
+        try {
+            const response: ApiResponse<LoginResponseData> = await authApi.login(formData);
+            const { data: loginData } = response;
+
+            // Store the access token in localStorage
+            localStorage.setItem("accessToken", loginData.accessToken);
+
+            // Redirect based on role
+            switch (loginData.role) {
+                case "Supplier":
+                    navigate("/");
+                    break;
+                case "Boatyard":
+                    navigate("/repair-shop/dashboard");
+                    break;
+                default:
+                    setError("Unknown role. Please contact support.");
+            }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (err: any) {
+            setError(err.message || "Đăng nhập thất bại. Vui lòng kiểm tra thông tin đăng nhập.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
-        <form className="space-y-4">
+        <form className="space-y-4" onSubmit={handleSubmit}>
+            {error && (
+                <div className="text-red-500 text-sm text-center">{error}</div>
+            )}
+
             <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
                     id="email"
                     type="email"
                     placeholder="your@email.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                    value={formData.usernameOrEmail}
+                    onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, usernameOrEmail: e.target.value }))
+                    }
                     required
                 />
             </div>
@@ -42,7 +79,9 @@ export function LoginForm() {
                         type={showPassword ? "text" : "password"}
                         placeholder="Nhập mật khẩu"
                         value={formData.password}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
+                        onChange={(e) =>
+                            setFormData((prev) => ({ ...prev, password: e.target.value }))
+                        }
                         required
                     />
                     <Button
@@ -61,8 +100,6 @@ export function LoginForm() {
                 </div>
             </div>
 
-
-
             <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
                     "Đang đăng nhập..."
@@ -74,5 +111,5 @@ export function LoginForm() {
                 )}
             </Button>
         </form>
-    )
+    );
 }

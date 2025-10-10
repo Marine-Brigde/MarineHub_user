@@ -58,11 +58,11 @@ export function LoginForm() {
             )}
 
             <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="usernameOrEmail">Tên đăng nhập hoặc Email</Label>
                 <Input
-                    id="email"
-                    type="email"
-                    placeholder="your@email.com"
+                    id="usernameOrEmail"
+                    type="text"
+                    placeholder="Nhập tên đăng nhập hoặc email"
                     value={formData.usernameOrEmail}
                     onChange={(e) =>
                         setFormData((prev) => ({ ...prev, usernameOrEmail: e.target.value }))

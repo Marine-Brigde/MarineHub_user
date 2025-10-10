@@ -107,7 +107,14 @@ export function RepairShopSidebar() {
                         </div>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Đăng xuất">
+                        <SidebarMenuButton asChild
+                            tooltip="Đăng xuất"
+                            onClick={() => {
+                                localStorage.removeItem("accessToken")
+                                // Nếu bạn lưu thêm refreshToken hoặc user info, xóa luôn ở đây
+                                // localStorage.removeItem("refreshToken")
+                                // localStorage.removeItem("user")
+                            }}>
                             <Link to="/login">
                                 <LogOut className="h-4 w-4" />
                                 <span>Đăng xuất</span>

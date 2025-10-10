@@ -27,7 +27,7 @@ const menuItems = [
         url: "/supplier/products",
         icon: Package,
     },
-    { 
+    {
         title: "Đơn hàng",
         url: "/supplier/orders",
         icon: ShoppingCart,
@@ -102,8 +102,13 @@ export function SupplierSidebar() {
                         </div>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Đăng xuất">
-                            <Link to="/auth/login">
+                        <SidebarMenuButton asChild
+                            tooltip="Đăng xuất"
+                            onClick={() => {
+                                localStorage.removeItem("accessToken")
+
+                            }}>
+                            <Link to="/login">
                                 <LogOut className="h-4 w-4" />
                                 <span>Đăng xuất</span>
                             </Link>

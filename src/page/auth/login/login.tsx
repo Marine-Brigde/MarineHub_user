@@ -19,14 +19,11 @@ export default function LoginPage() {
     };
     return (
         <div className="min-h-screen bg-background flex items-center justify-center p-4" style={{ overflow: "hidden", position: "relative" }}>
-            <video
-                autoPlay
-                loop
-                muted
-                playsInline
+            <img
+
                 className="absolute inset-0 w-full h-full object-cover z-0 transition duration-300 group-hover:blur-sm"
 
-                src="/541277703_24864000929890843_2493772521354789360_n.mp4"
+                src="/image/backgroud.jpg"
             />
             <div className="w-full max-w-md relative z-10">
                 <div className="w-full max-w-md">

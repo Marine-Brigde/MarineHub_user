@@ -1,0 +1,26 @@
+export interface DockSlot {
+    name: string;
+    assignedFrom: string; // ISO date string
+    assignedUntil: string; // ISO date string
+}
+
+export interface BoatyardRequest {
+    name: string;
+    longitude: string;
+    latitude: string;
+    fullName: string;
+    username: string;
+    email: string;
+    password: string;
+    address: string;
+    phoneNumber: string;
+    otp: string;
+    avatar?: File | null;
+    dockSlots: DockSlot[];
+}
+
+export interface ApiResponse<T> {
+    status: number;
+    message: string;
+    data: T;
+}

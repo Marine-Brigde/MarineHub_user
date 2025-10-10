@@ -35,13 +35,13 @@ export function LoginForm() {
             // Redirect based on role
             switch (loginData.role) {
                 case "Supplier":
-                    navigate("/");
+                    navigate("/suppliers");
                     break;
                 case "Boatyard":
                     navigate("/repair-shop/dashboard");
                     break;
                 default:
-                    setError("Unknown role. Please contact support.");
+                    navigate("/");
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {

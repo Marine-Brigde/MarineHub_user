@@ -8,7 +8,7 @@ import axiosClient from "./axiosClient"
 export const authApi = {
     // 🔐 Đăng nhập
     login: (data: LoginRequest): Promise<ApiResponse<LoginResponseData>> => {
-        const url = '/api/v1/auth/login'
+        const url = '/v1/auth/login'
         return axiosClient.post(url, data)
     },
 

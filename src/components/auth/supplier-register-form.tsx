@@ -7,13 +7,12 @@ import { Eye, EyeOff, Package, MapPin, Mail, Phone, User } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useNavigate } from "react-router-dom";
 
-import type { SupplierRequest } from "@/models/supplier";
-import type { OtpRequest } from "@/models/Auth";
-import { createSupplierApi } from "@/api/supplierApi";
+import type { RegisterRequest, OtpRequest } from "@/models/Auth";
+import type { ApiResponse } from "@/types/api";
 import { authApi } from "@/api/authApi";
 import { MapComponent } from "../map/MapComponent";
 
-type SupplierFormData = Omit<SupplierRequest, "otp">;
+type SupplierFormData = Omit<RegisterRequest, "Otp">;
 
 export function SupplierRegisterForm() {
     const navigate = useNavigate();
@@ -26,25 +25,20 @@ export function SupplierRegisterForm() {
     const [otpSent, setOtpSent] = useState(false);
 
     const [formData, setFormData] = useState<SupplierFormData>({
-        name: "",
-        username: "",
-        email: "",
-        password: "",
-        fullName: "",
-        phoneNumber: "",
-        address: "",
-        latitude: "",
-        longitude: "",
-        avatar: undefined,
+        FullName: "",
+        Username: "",
+        Email: "",
+        Password: "",
+        PhoneNumber: "",
+        Address: "",
+        Avatar: undefined,
     });
 
     // Handle location selection from MapComponent
-    const handleLocationSelect = (lat: string, lng: string, address: string) => {
+    const handleLocationSelect = (_lat: string, _lng: string, address: string) => {
         setFormData((prev) => ({
             ...prev,
-            latitude: lat,
-            longitude: lng,
-            address: address,
+            Address: address,
         }));
     };
 
@@ -53,13 +47,13 @@ export function SupplierRegisterForm() {
         setOtpLoading(true);
         setError("");
         setSuccess("");
-        if (!formData.email.includes("@") || !formData.email.includes(".")) {
+        if (!formData.Email.includes("@") || !formData.Email.includes(".")) {
             setError("Email không hợp lệ");
             setOtpLoading(false);
             return;
         }
         try {
-            const payload: OtpRequest = { email: formData.email };
+            const payload: OtpRequest = { email: formData.Email };
             const res = await authApi.sendOtp(payload);
             if (res.status === 201) {
                 setOtpSent(true);
@@ -78,13 +72,13 @@ export function SupplierRegisterForm() {
     // Đăng ký nhà cung cấp
     const registerSupplier = async (otp: string) => {
         try {
-            const supplierData: SupplierRequest = {
+            const registerData: RegisterRequest = {
                 ...formData,
-                otp,
-                avatar: formData.avatar ?? null,
+                Otp: otp,
+                Avatar: formData.Avatar ?? null,
             };
-            const res = await createSupplierApi(supplierData);
-            if (res.status === 201) {
+            const res: ApiResponse<any> = await authApi.register(registerData);
+            if (res.status === 200 || res.status === 201) {
                 return { success: true, data: res.data };
             } else {
                 return { success: false, error: res.message || "Lỗi khi đăng ký" };
@@ -104,48 +98,33 @@ export function SupplierRegisterForm() {
         setIsLoading(true);
 
         // Validate form
-        if (formData.password.length < 6) {
+        if (formData.Password.length < 6) {
             setError("Mật khẩu phải có ít nhất 6 ký tự");
             setIsLoading(false);
             return;
         }
-        if (!formData.email.includes("@") || !formData.email.includes(".")) {
+        if (!formData.Email.includes("@") || !formData.Email.includes(".")) {
             setError("Email không hợp lệ");
             setIsLoading(false);
             return;
         }
-        if (!formData.name.trim()) {
-            setError("Tên công ty không được để trống");
-            setIsLoading(false);
-            return;
-        }
-        if (!formData.username.trim()) {
-            setError("Tên đăng nhập không được để trống");
-            setIsLoading(false);
-            return;
-        }
-        if (!formData.fullName.trim()) {
+        if (!formData.FullName.trim()) {
             setError("Họ và tên không được để trống");
             setIsLoading(false);
             return;
         }
-        if (!formData.phoneNumber.trim()) {
+        if (!formData.Username.trim()) {
+            setError("Tên đăng nhập không được để trống");
+            setIsLoading(false);
+            return;
+        }
+        if (!formData.PhoneNumber.trim()) {
             setError("Số điện thoại không được để trống");
             setIsLoading(false);
             return;
         }
-        if (!formData.address.trim()) {
+        if (!formData.Address.trim()) {
             setError("Địa chỉ không được để trống");
-            setIsLoading(false);
-            return;
-        }
-        if (!formData.latitude.trim() || isNaN(Number(formData.latitude))) {
-            setError("Vĩ độ phải là số hợp lệ");
-            setIsLoading(false);
-            return;
-        }
-        if (!formData.longitude.trim() || isNaN(Number(formData.longitude))) {
-            setError("Kinh độ phải là số hợp lệ");
             setIsLoading(false);
             return;
         }
@@ -197,138 +176,125 @@ export function SupplierRegisterForm() {
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-6 p-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="name" className="flex items-center gap-2">
-                                <Package className="h-4 w-4" />
-                                Tên công ty
-                            </Label>
-                            <Input
-                                id="name"
-                                placeholder="Tên công ty"
-                                value={formData.name}
-                                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="username" className="flex items-center gap-2">
-                                <User className="h-4 w-4" />
-                                Tên đăng nhập
-                            </Label>
-                            <Input
-                                id="username"
-                                placeholder="Tên đăng nhập"
-                                value={formData.username}
-                                onChange={(e) => setFormData((prev) => ({ ...prev, username: e.target.value }))}
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="fullName" className="flex items-center gap-2">
-                                <User className="h-4 w-4" />
-                                Họ và tên đầy đủ
-                            </Label>
-                            <Input
-                                id="fullName"
-                                placeholder="Họ và tên đầy đủ"
-                                value={formData.fullName}
-                                onChange={(e) => setFormData((prev) => ({ ...prev, fullName: e.target.value }))}
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="phoneNumber" className="flex items-center gap-2">
-                                <Phone className="h-4 w-4" />
-                                Số điện thoại
-                            </Label>
-                            <Input
-                                id="phoneNumber"
-                                type="tel"
-                                placeholder="0123456789"
-                                value={formData.phoneNumber}
-                                onChange={(e) => setFormData((prev) => ({ ...prev, phoneNumber: e.target.value }))}
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="email" className="flex items-center gap-2">
-                                <Mail className="h-4 w-4" />
-                                Email
-                            </Label>
-                            <div className="flex gap-2">
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    placeholder="your@email.com"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
-                                    required
-                                />
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={handleSendOTP}
-                                    disabled={otpLoading || !formData.email}
-                                >
-                                    {otpLoading ? "Đang gửi..." : "Lấy OTP"}
-                                </Button>
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="otp">Mã OTP</Label>
-                            <Input
-                                id="otp"
-                                type="text"
-                                placeholder="Nhập mã OTP 4 số"
-                                value={otp}
-                                onChange={(e) => setOtp(e.target.value)}
-                                maxLength={4}
-                                required
-                                className="text-center text-lg tracking-widest"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="password" className="flex items-center gap-2">Mật khẩu</Label>
-                            <div className="relative">
-                                <Input
-                                    id="password"
-                                    type={showPassword ? "text" : "password"}
-                                    placeholder="Nhập mật khẩu (ít nhất 6 ký tự)"
-                                    value={formData.password}
-                                    onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
-                                    required
-                                />
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                >
-                                    {showPassword ? (
-                                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                                    ) : (
-                                        <Eye className="h-4 w-4 text-muted-foreground" />
-                                    )}
-                                </Button>
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="avatar">Ảnh đại diện (tùy chọn)</Label>
-                            <Input
-                                id="avatar"
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                        setFormData((prev) => ({ ...prev, avatar: file }));
-                                    }
-                                }}
-                            />
-                        </div>
-                    </div>
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                         <div className="space-y-2">
+                             <Label htmlFor="fullName" className="flex items-center gap-2">
+                                 <User className="h-4 w-4" />
+                                 Họ và tên đầy đủ
+                             </Label>
+                             <Input
+                                 id="fullName"
+                                 placeholder="Họ và tên đầy đủ"
+                                 value={formData.FullName}
+                                 onChange={(e) => setFormData((prev) => ({ ...prev, FullName: e.target.value }))}
+                                 required
+                             />
+                         </div>
+                         <div className="space-y-2">
+                             <Label htmlFor="username" className="flex items-center gap-2">
+                                 <User className="h-4 w-4" />
+                                 Tên đăng nhập
+                             </Label>
+                             <Input
+                                 id="username"
+                                 placeholder="Tên đăng nhập"
+                                 value={formData.Username}
+                                 onChange={(e) => setFormData((prev) => ({ ...prev, Username: e.target.value }))}
+                                 required
+                             />
+                         </div>
+                         <div className="space-y-2">
+                             <Label htmlFor="phoneNumber" className="flex items-center gap-2">
+                                 <Phone className="h-4 w-4" />
+                                 Số điện thoại
+                             </Label>
+                             <Input
+                                 id="phoneNumber"
+                                 type="tel"
+                                 placeholder="0123456789"
+                                 value={formData.PhoneNumber}
+                                 onChange={(e) => setFormData((prev) => ({ ...prev, PhoneNumber: e.target.value }))}
+                                 required
+                             />
+                         </div>
+                         <div className="space-y-2">
+                             <Label htmlFor="email" className="flex items-center gap-2">
+                                 <Mail className="h-4 w-4" />
+                                 Email
+                             </Label>
+                             <div className="flex gap-2">
+                                 <Input
+                                     id="email"
+                                     type="email"
+                                     placeholder="your@email.com"
+                                     value={formData.Email}
+                                     onChange={(e) => setFormData((prev) => ({ ...prev, Email: e.target.value }))}
+                                     required
+                                 />
+                                 <Button
+                                     type="button"
+                                     variant="outline"
+                                     onClick={handleSendOTP}
+                                     disabled={otpLoading || !formData.Email}
+                                 >
+                                     {otpLoading ? "Đang gửi..." : "Lấy OTP"}
+                                 </Button>
+                             </div>
+                         </div>
+                         <div className="space-y-2">
+                             <Label htmlFor="otp">Mã OTP</Label>
+                             <Input
+                                 id="otp"
+                                 type="text"
+                                 placeholder="Nhập mã OTP 4 số"
+                                 value={otp}
+                                 onChange={(e) => setOtp(e.target.value)}
+                                 maxLength={4}
+                                 required
+                                 className="text-center text-lg tracking-widest"
+                             />
+                         </div>
+                         <div className="space-y-2">
+                             <Label htmlFor="password" className="flex items-center gap-2">Mật khẩu</Label>
+                             <div className="relative">
+                                 <Input
+                                     id="password"
+                                     type={showPassword ? "text" : "password"}
+                                     placeholder="Nhập mật khẩu (ít nhất 6 ký tự)"
+                                     value={formData.Password}
+                                     onChange={(e) => setFormData((prev) => ({ ...prev, Password: e.target.value }))}
+                                     required
+                                 />
+                                 <Button
+                                     type="button"
+                                     variant="ghost"
+                                     size="sm"
+                                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                     onClick={() => setShowPassword(!showPassword)}
+                                 >
+                                     {showPassword ? (
+                                         <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                     ) : (
+                                         <Eye className="h-4 w-4 text-muted-foreground" />
+                                     )}
+                                 </Button>
+                             </div>
+                         </div>
+                         <div className="space-y-2">
+                             <Label htmlFor="avatar">Ảnh đại diện (tùy chọn)</Label>
+                             <Input
+                                 id="avatar"
+                                 type="file"
+                                 accept="image/*"
+                                 onChange={(e) => {
+                                     const file = e.target.files?.[0];
+                                     if (file) {
+                                         setFormData((prev) => ({ ...prev, Avatar: file }));
+                                     }
+                                 }}
+                             />
+                         </div>
+                     </div>
 
                     <MapComponent onLocationSelect={handleLocationSelect} />
 
@@ -340,38 +306,11 @@ export function SupplierRegisterForm() {
                         <Textarea
                             id="address"
                             placeholder="Địa chỉ công ty"
-                            value={formData.address}
-                            onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
+                            value={formData.Address}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, Address: e.target.value }))}
                             required
                             rows={3}
                         />
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="latitude">Vĩ độ (Latitude)</Label>
-                            <Input
-                                id="latitude"
-                                type="number"
-                                step="any"
-                                placeholder="10.762622"
-                                value={formData.latitude}
-                                onChange={(e) => setFormData((prev) => ({ ...prev, latitude: e.target.value }))}
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="longitude">Kinh độ (Longitude)</Label>
-                            <Input
-                                id="longitude"
-                                type="number"
-                                step="any"
-                                placeholder="106.660172"
-                                value={formData.longitude}
-                                onChange={(e) => setFormData((prev) => ({ ...prev, longitude: e.target.value }))}
-                                required
-                            />
-                        </div>
                     </div>
 
                     <Button type="submit" className="w-full" disabled={isLoading}>

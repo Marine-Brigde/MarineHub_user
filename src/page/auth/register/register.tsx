@@ -17,7 +17,7 @@ export default function RegisterPage() {
 
                 className="fixed inset-0 w-full h-full object-cover z-0"
 
-                src="/541277703_24864000929890843_2493772521354789360_n.mp4"
+                src="/image/backgroud.jpg"
             />
 
             {/* Overlay mờ để làm dịu video */}

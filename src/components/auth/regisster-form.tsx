@@ -239,7 +239,7 @@ export function BoatyardRegisterForm() {
                 })),
             }
             const res = await createBoatyardApi(boatyardData)
-            if (res.status === 201 || res.status === 201) {
+            if (res.status === 201 || res.status === 200 && res.data && res.message) {
                 return { success: true, data: res.data }
             } else {
                 return { success: false, error: res.message || "Lỗi khi đăng ký" }

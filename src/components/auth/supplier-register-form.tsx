@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Eye, EyeOff, Package, MapPin, Mail, Phone, User } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useNavigate } from "react-router-dom"
-
 import type { SupplierRequest } from "@/models/supplier"
 import type { OtpRequest } from "@/models/Auth"
 import { createSupplierApi } from "@/api/supplierApi"
@@ -63,7 +61,8 @@ export function SupplierRegisterForm() {
         try {
             const payload: OtpRequest = { email: formData.email }
             const res = await authApi.sendOtp(payload)
-            if (res.status === 201) {
+            console.log("OTP Response:", res)
+            if (res.status === 201 || res.status === 200) {
                 setOtpSent(true)
                 setSuccess("Mã OTP đã được gửi đến email của bạn")
             } else {
@@ -71,6 +70,7 @@ export function SupplierRegisterForm() {
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
+            console.error("Lỗi khi gửi OTP:", err)
             const message = err?.message || "Lỗi kết nối mạng"
             setError(message)
         }
@@ -85,13 +85,16 @@ export function SupplierRegisterForm() {
                 avatar: formData.avatar ?? null,
             }
             const res = await createSupplierApi(supplierData)
-            if (res.status === 201) {
+            console.log("Supplier API Response:", res)
+            // Kiểm tra trực tiếp các trường dữ liệu trong phản hồi
+            if (res.status === 201 || res.status === 200 && res.data && res.message) {
                 return { success: true, data: res.data }
             } else {
-                return { success: false, error: res.message || "Lỗi khi đăng ký" }
+                return { success: false, error: "Dữ liệu phản hồi không hợp lệ" }
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
+            console.error("Lỗi trong registerSupplier:", err)
             const message = err?.message || "Lỗi kết nối mạng"
             return { success: false, error: message }
         }
@@ -103,7 +106,7 @@ export function SupplierRegisterForm() {
         setSuccess("")
         setIsLoading(true)
 
-        // ... existing validation code ...
+        // Validation
         if (formData.password.length < 6) {
             setError("Mật khẩu phải có ít nhất 6 ký tự")
             setIsLoading(false)
@@ -161,13 +164,15 @@ export function SupplierRegisterForm() {
         }
 
         const result = await registerSupplier(otp)
+        console.log("Registration Result:", result)
         if (result.success) {
             setSuccess("Đăng ký thành công! Đang chuyển hướng...")
             setTimeout(() => {
+                console.log("Chuyển hướng đến /suppliers")
                 navigate("/suppliers")
             }, 2000)
         } else {
-            setError(result.error || "Có lỗi xảy ra")
+            setError(result.error || "Có lỗi xảy ra khi đăng ký")
         }
         setIsLoading(false)
     }

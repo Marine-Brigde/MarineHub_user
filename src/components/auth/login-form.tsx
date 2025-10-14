@@ -30,10 +30,10 @@ export function LoginForm() {
             const { data: loginData } = response;
 
             // Store the access token in localStorage
-            localStorage.setItem("accessToken", loginData.accessToken);
+            localStorage.setItem("accessToken", loginData.data.accessToken);
 
             // Redirect based on role
-            switch (loginData.role) {
+            switch (loginData.data.role) {
                 case "Supplier":
                     navigate("/suppliers");
                     break;

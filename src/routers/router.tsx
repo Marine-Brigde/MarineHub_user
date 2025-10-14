@@ -9,6 +9,7 @@ import ProductsPage from '@/page/supplier/products/products';
 import SupplierDashboardPage from '@/page/supplier/dashboard/dasboard';
 import { createBrowserRouter } from 'react-router-dom';
 import SupplierLayout from '@/page/supplier/layout';
+import ServicesPage from '@/page/repair-shop/services/services';
 
 
 const router = createBrowserRouter([
@@ -36,9 +37,18 @@ const router = createBrowserRouter([
             </RepairShopLayout>
         ),
     },
+    {
+        path: '/repair-shop/services',
+
+        element: (
+            <RepairShopLayout>
+                <ServicesPage />
+            </RepairShopLayout>
+        ),
+    },
 
     {
-        path: '/products',
+        path: '/suppliers',
         element: (
             <SupplierLayout>
                 <SupplierDashboardPage />
@@ -46,7 +56,7 @@ const router = createBrowserRouter([
         )
     },
     {
-        path: '/suppliers',
+        path: '/supplier/products',
         element: (
             <SupplierLayout>
                 <ProductsPage />

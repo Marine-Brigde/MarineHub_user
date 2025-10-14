@@ -1,6 +1,8 @@
-import type { ApiResponse, BoatyardRequest } from "@/types/boatyard";
+// src/boatyardApi.ts
 import axiosClient from "../axiosClient";
+import type { ApiResponse, BoatyardRequest, BoatyardItem, PaginatedResponse } from "@/types/boatyard";
 
+// 🛠️ POST - Tạo mới Boatyard
 export const createBoatyardApi = async (
     boatyardData: BoatyardRequest
 ): Promise<ApiResponse<string>> => {
@@ -21,8 +23,7 @@ export const createBoatyardApi = async (
         formData.append("Avatar", boatyardData.avatar);
     }
 
-    // 🧠 DockSlots là mảng => cần stringify từng phần tử
-    if (boatyardData.dockSlots && boatyardData.dockSlots.length > 0) {
+    if (boatyardData.dockSlots?.length > 0) {
         boatyardData.dockSlots.forEach((slot, index) => {
             formData.append(`DockSlots[${index}].name`, slot.name);
             formData.append(`DockSlots[${index}].assignedFrom`, slot.assignedFrom);
@@ -30,7 +31,55 @@ export const createBoatyardApi = async (
         });
     }
 
-    const response = await axiosClient.post<ApiResponse<string>>("v1/boatyards", formData, {
+    const response = await axiosClient.post<ApiResponse<string>>("/v1/boatyards", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    return response.data;
+};
+
+// 🧭 GET - Danh sách Boatyards (có phân trang, lọc theo name)
+export const getBoatyardsApi = async (params?: {
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    isAsc?: boolean;
+    name?: string;
+}): Promise<ApiResponse<PaginatedResponse<BoatyardItem>>> => {
+    const response = await axiosClient.get<ApiResponse<PaginatedResponse<BoatyardItem>>>(
+        "/v1/boatyards",
+        { params }
+    );
+    return response.data;
+};
+
+// 🔍 GET - Lấy Boatyard theo ID
+export const getBoatyardByIdApi = async (id: string): Promise<ApiResponse<BoatyardItem>> => {
+    const response = await axiosClient.get<ApiResponse<BoatyardItem>>(`/v1/boatyards/${id}`);
+    return response.data;
+};
+
+// 👤 GET - Lấy chi tiết Boatyard của người dùng hiện tại
+export const getBoatyardDetailApi = async (): Promise<ApiResponse<BoatyardItem>> => {
+    const response = await axiosClient.get<ApiResponse<BoatyardItem>>("/v1/boatyards/detail");
+    return response.data;
+};
+
+// ✏️ PATCH - Cập nhật Boatyard
+export const updateBoatyardApi = async (
+    data: Partial<Omit<BoatyardRequest, "email" | "username" | "otp">>
+): Promise<ApiResponse<string>> => {
+    const formData = new FormData();
+
+    if (data.name) formData.append("Name", data.name);
+    if (data.longitude) formData.append("Longitude", data.longitude);
+    if (data.latitude) formData.append("Latitude", data.latitude);
+    if (data.fullName) formData.append("FullName", data.fullName);
+    if (data.password) formData.append("Password", data.password);
+    if (data.address) formData.append("Address", data.address);
+    if (data.avatar) formData.append("Avatar", data.avatar);
+
+    const response = await axiosClient.patch<ApiResponse<string>>("/v1/boatyards", formData, {
         headers: { "Content-Type": "multipart/form-data" },
     });
 

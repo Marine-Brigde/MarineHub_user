@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,69 +15,112 @@ import {
 } from "@/components/ui/breadcrumb"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Search, Filter, Edit, Eye, Trash2, Wrench, Clock, CheckCircle, AlertTriangle } from "lucide-react"
+import { Plus, Search, Filter, Edit, Trash2, Wrench, CheckCircle, AlertTriangle } from "lucide-react"
 
-const services = [
-    {
-        id: "DV001",
-        name: "Bảo trì động cơ chính",
-        category: "Động cơ",
-        duration: "4-6 giờ",
-        price: "15,000,000₫",
-        status: "Có sẵn",
-        capacity: "2 tàu/ngày",
-        description: "Bảo trì định kỳ động cơ chính, thay dầu, kiểm tra hệ thống",
-    },
-    {
-        id: "DV002",
-        name: "Sửa chữa hệ thống điều hướng",
-        category: "Điện tử",
-        duration: "2-4 giờ",
-        price: "8,500,000₫",
-        status: "Có sẵn",
-        capacity: "3 tàu/ngày",
-        description: "Sửa chữa và hiệu chỉnh GPS, radar, la bàn điện tử",
-    },
-    {
-        id: "DV003",
-        name: "Đại tu động cơ",
-        category: "Động cơ",
-        duration: "7-10 ngày",
-        price: "150,000,000₫",
-        status: "Bận",
-        capacity: "1 tàu/tháng",
-        description: "Đại tu toàn bộ động cơ chính, thay thế linh kiện lớn",
-    },
-    {
-        id: "DV004",
-        name: "Kiểm tra an toàn định kỳ",
-        category: "An toàn",
-        duration: "1-2 giờ",
-        price: "3,000,000₫",
-        status: "Có sẵn",
-        capacity: "5 tàu/ngày",
-        description: "Kiểm tra thiết bị an toàn, cứu sinh, phòng cháy chữa cháy",
-    },
-    {
-        id: "DV005",
-        name: "Sửa chữa thân tàu",
-        category: "Kết cấu",
-        duration: "3-5 ngày",
-        price: "45,000,000₫",
-        status: "Bảo trì",
-        capacity: "1 tàu/tuần",
-        description: "Hàn sửa vỏ tàu, chống rỉ sét, sơn phủ bảo vệ",
-    },
-]
+import {
+    getBoatyardServicesApi,
+    createBoatyardServiceApi,
+    updateBoatyardServiceApi,
+    // deleteBoatyardServiceApi, // PATCH để đổi trạng thái
+} from "@/api/boatyardApi/boatyardServiceApi"
+import type {
+    BoatyardService,
+    BoatyardServiceRequest,
+    BoatyardServiceUpdateRequest,
+} from "@/types/boatyardService/boatyardService"
 
 export function ServicesManagement() {
     const [searchTerm, setSearchTerm] = useState("")
+    const [services, setServices] = useState<BoatyardService[]>([])
+    const [loading, setLoading] = useState(false)
+    const [showForm, setShowForm] = useState(false)
+    const [editService, setEditService] = useState<BoatyardService | null>(null)
+    const [formLoading, setFormLoading] = useState(false)
+    const [formError, setFormError] = useState("")
+    const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all")
 
-    const filteredServices = services.filter(
-        (service) =>
-            service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            service.category.toLowerCase().includes(searchTerm.toLowerCase()),
-    )
+    const fetchServices = () => {
+        setLoading(true)
+        getBoatyardServicesApi(1, 20)
+            .then((res) => setServices(res.data.items))
+            .catch(() => setServices([]))
+            .finally(() => setLoading(false))
+    }
+
+    useEffect(() => {
+        fetchServices()
+    }, [])
+
+    const filteredServices = services.filter((service) => {
+        const matchSearch = service.typeService.toLowerCase().includes(searchTerm.toLowerCase())
+        const matchStatus =
+            filterStatus === "all"
+                ? true
+                : filterStatus === "active"
+                    ? service.isActive
+                    : !service.isActive
+        return matchSearch && matchStatus
+    })
+
+    // Thống kê đơn giản
+    const total = services.length
+    const available = services.filter((s) => s.isActive).length
+    const busy = services.filter((s) => !s.isActive).length
+
+    // Thêm hoặc sửa dịch vụ
+    const handleFormSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setFormError("")
+        setFormLoading(true)
+        const form = e.target as HTMLFormElement
+        const typeService = (form.elements.namedItem("typeService") as HTMLInputElement).value.trim()
+        const price = Number((form.elements.namedItem("price") as HTMLInputElement).value)
+        if (!typeService) {
+            setFormError("Tên dịch vụ không được để trống")
+            setFormLoading(false)
+            return
+        }
+        if (!price || isNaN(price)) {
+            setFormError("Giá dịch vụ không hợp lệ")
+            setFormLoading(false)
+            return
+        }
+        try {
+            if (editService) {
+                const updateData: BoatyardServiceUpdateRequest = {
+                    typeService,
+                    price,
+                    isActive: editService.isActive,
+                }
+                await updateBoatyardServiceApi(editService.id, updateData)
+            } else {
+                const createData: BoatyardServiceRequest = { typeService, price }
+                await createBoatyardServiceApi(createData)
+            }
+            setShowForm(false)
+            setEditService(null)
+            fetchServices()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (err: any) {
+            setFormError(err?.message || "Có lỗi xảy ra")
+        }
+        setFormLoading(false)
+    }
+
+    // Đổi trạng thái hoạt động (PATCH)
+    const handleToggleActive = async (service: BoatyardService) => {
+        try {
+            await updateBoatyardServiceApi(service.id, {
+                typeService: service.typeService,
+                price: service.price,
+                isActive: !service.isActive,
+            })
+            fetchServices()
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        } catch (err) {
+            // Xử lý lỗi nếu cần
+        }
+    }
 
     return (
         <div className="flex flex-col gap-4 p-4 md:p-6">
@@ -100,21 +143,18 @@ export function ServicesManagement() {
             {/* Page Title */}
             <div className="flex flex-col gap-2">
                 <h1 className="text-3xl font-bold text-foreground">Quản lý dịch vụ</h1>
-                <p className="text-muted-foreground">Quản lý các dịch vụ sửa chữa và lịch trống của xưởng</p>
+                <p className="text-muted-foreground">Quản lý các dịch vụ sửa chữa của xưởng</p>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Tổng dịch vụ</CardTitle>
                         <Wrench className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-accent">24</div>
-                        <p className="text-xs text-muted-foreground">
-                            <span className="text-primary">+2</span> dịch vụ mới
-                        </p>
+                        <div className="text-2xl font-bold text-accent">{total}</div>
                     </CardContent>
                 </Card>
 
@@ -124,30 +164,17 @@ export function ServicesManagement() {
                         <CheckCircle className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-accent">18</div>
-                        <p className="text-xs text-muted-foreground">75% tổng dịch vụ</p>
+                        <div className="text-2xl font-bold text-accent">{available}</div>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Đang bận</CardTitle>
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-primary">4</div>
-                        <p className="text-xs text-muted-foreground">Đang thực hiện</p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Bảo trì</CardTitle>
+                        <CardTitle className="text-sm font-medium">Không hoạt động</CardTitle>
                         <AlertTriangle className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-secondary">2</div>
-                        <p className="text-xs text-muted-foreground">Cần bảo trì thiết bị</p>
+                        <div className="text-2xl font-bold text-secondary">{busy}</div>
                     </CardContent>
                 </Card>
             </div>
@@ -164,74 +191,132 @@ export function ServicesManagement() {
                             className="pl-8"
                         />
                     </div>
-                    <Button variant="outline">
-                        <Filter className="h-4 w-4 mr-2" />
-                        Lọc
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Filter className="h-4 w-4 text-muted-foreground" />
+                        <select
+                            className="border rounded px-3 py-2 text-sm"
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value as "all" | "active" | "inactive")}
+                        >
+                            <option value="all">Tất cả</option>
+                            <option value="active">Đang hoạt động</option>
+                            <option value="inactive">Đã đóng</option>
+                        </select>
+                    </div>
                 </div>
-                <Button>
+                <Button onClick={() => { setShowForm(true); setEditService(null); }}>
                     <Plus className="h-4 w-4 mr-2" />
                     Thêm dịch vụ
                 </Button>
             </div>
 
+            {/* Form Thêm/Sửa dịch vụ */}
+            {showForm && (
+                <Card className="mb-4">
+                    <CardHeader>
+                        <CardTitle>{editService ? "Sửa dịch vụ" : "Thêm dịch vụ"}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleFormSubmit} className="space-y-4">
+                            <div>
+                                <Input
+                                    name="typeService"
+                                    placeholder="Tên dịch vụ"
+                                    defaultValue={editService?.typeService || ""}
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <Input
+                                    name="price"
+                                    placeholder="Giá dịch vụ"
+                                    type="number"
+                                    defaultValue={editService?.price?.toString() || ""}
+                                    required
+                                />
+                            </div>
+                            {formError && <div className="text-red-500 text-sm">{formError}</div>}
+                            <div className="flex gap-2 justify-end">
+                                <Button type="button" variant="outline" onClick={() => { setShowForm(false); setEditService(null); }} disabled={formLoading}>Huỷ</Button>
+                                <Button type="submit" disabled={formLoading}>{formLoading ? "Đang lưu..." : "Lưu"}</Button>
+                            </div>
+                        </form>
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Services Table */}
             <Card>
                 <CardHeader>
                     <CardTitle>Danh sách dịch vụ</CardTitle>
-                    <CardDescription>Quản lý thông tin dịch vụ sửa chữa và công suất</CardDescription>
+                    <CardDescription>Quản lý thông tin dịch vụ sửa chữa</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Dịch vụ</TableHead>
-                                <TableHead>Danh mục</TableHead>
-                                <TableHead>Thời gian</TableHead>
                                 <TableHead>Giá dịch vụ</TableHead>
-                                <TableHead>Công suất</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                                 <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredServices.map((service) => (
-                                <TableRow key={service.id}>
-                                    <TableCell>
-                                        <div>
-                                            <p className="font-medium">{service.name}</p>
-                                            <p className="text-sm text-muted-foreground">#{service.id}</p>
-                                            <p className="text-xs text-muted-foreground mt-1">{service.description}</p>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>{service.category}</TableCell>
-                                    <TableCell>{service.duration}</TableCell>
-                                    <TableCell className="font-medium">{service.price}</TableCell>
-                                    <TableCell>{service.capacity}</TableCell>
-                                    <TableCell>
-                                        <Badge
-                                            variant={
-                                                service.status === "Có sẵn" ? "default" : service.status === "Bận" ? "secondary" : "destructive"
-                                            }
-                                        >
-                                            {service.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex gap-2 justify-end">
-                                            <Button size="sm" variant="outline">
-                                                <Eye className="h-4 w-4" />
-                                            </Button>
-                                            <Button size="sm" variant="outline">
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
-                                            <Button size="sm" variant="outline">
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
+                            {loading ? (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="text-center">
+                                        Đang tải...
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            ) : filteredServices.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="text-center">
+                                        Không có dịch vụ nào
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                filteredServices.map((service) => (
+                                    <TableRow key={service.id}>
+                                        <TableCell>
+                                            <div>
+                                                <p className="font-medium">{service.typeService}</p>
+                                                <p className="text-xs text-muted-foreground mt-1">ID: {service.id}</p>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="font-medium">
+                                            {service.price.toLocaleString("vi-VN")}₫
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge
+                                                variant={service.isActive ? "default" : "destructive"}
+                                                className="cursor-pointer"
+                                                onClick={() => handleToggleActive(service)}
+                                            >
+                                                {service.isActive ? "Có sẵn" : "Không hoạt động"}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex gap-2 justify-end">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => { setEditService(service); setShowForm(true); }}
+                                                >
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                                {/* Không có API xóa cứng, chỉ đổi trạng thái */}
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => handleToggleActive(service)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>

@@ -36,8 +36,8 @@ const menuItems = [
         icon: Ship,
     },
     {
-        title: "Vị trí & Đón tàu",
-        url: "/repair-shop/location",
+        title: "Bến đậu tàu",
+        url: "/repair-shop/dock",
         icon: MapPin,
     },
     {

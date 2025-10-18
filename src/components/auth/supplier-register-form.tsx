@@ -48,6 +48,20 @@ export function SupplierRegisterForm() {
             address: address,
         }))
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const extractServerMessage = (body: any) => {
+        // body may be string or object { status, message, data }
+        if (!body) return ""
+        if (typeof body === "string") return body
+        // if data is a string use it (e.g. data: "Mã OTP không chính xác")
+        if (body.data && typeof body.data === "string") return body.data
+        if (body.message) return body.message
+        if (body.data?.message) return body.data.message
+        // sometimes error payload is nested under data.error or data.message
+        if (body.data?.error) return body.data.error
+        if (body.error) return body.error
+        return ""
+    }
 
     const handleSendOTP = async () => {
         setOtpLoading(true)
@@ -62,40 +76,58 @@ export function SupplierRegisterForm() {
             const payload: OtpRequest = { email: formData.email }
             const res = await authApi.sendOtp(payload)
             console.log("OTP Response:", res)
-            if (res.status === 201 || res.status === 200) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const httpStatus = (res as any)?.status
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const body = (res as any)?.data ?? res
+            const msg = extractServerMessage(body) || "Đã gửi OTP"
+
+            if (httpStatus === 201 || httpStatus === 200 || body?.status === 201 || body?.status === 200) {
                 setOtpSent(true)
-                setSuccess("Mã OTP đã được gửi đến email của bạn")
+                setSuccess(msg)
             } else {
-                setError(res.message || "Lỗi khi gửi OTP")
+                setError(msg || "Lỗi khi gửi OTP")
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error("Lỗi khi gửi OTP:", err)
-            const message = err?.message || "Lỗi kết nối mạng"
+            const resp = err?.response?.data ?? err?.response ?? err
+            const message = extractServerMessage(resp) || err?.message || "Lỗi kết nối mạng"
             setError(message)
         }
         setOtpLoading(false)
     }
 
-    const registerSupplier = async (otp: string) => {
+    const registerSupplier = async (otpValue: string) => {
         try {
             const supplierData: SupplierRequest = {
                 ...formData,
-                otp,
+                otp: otpValue,
                 avatar: formData.avatar ?? null,
             }
             const res = await createSupplierApi(supplierData)
             console.log("Supplier API Response:", res)
-            // Kiểm tra trực tiếp các trường dữ liệu trong phản hồi
-            if (res.status === 201 || res.status === 200 && res.data && res.message) {
-                return { success: true, data: res.data }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const httpStatus = (res as any)?.status
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const body = (res as any)?.data ?? res
+            const msg = extractServerMessage(body) || "Hoàn tất đăng ký"
+
+            if (httpStatus === 201 || httpStatus === 200 || body?.status === 201 || body?.status === 200) {
+                // lưu accessToken nếu server trả
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const token = (body && (body.accessToken ?? body.data?.accessToken)) ?? (res as any)?.accessToken
+                if (token) localStorage.setItem("accessToken", token)
+                return { success: true, data: body?.data ?? body, message: msg }
             } else {
-                return { success: false, error: "Dữ liệu phản hồi không hợp lệ" }
+                // trả về message chính xác từ server (ví dụ data: "Mã OTP không chính xác")
+                return { success: false, error: msg || "Dữ liệu phản hồi không hợp lệ" }
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error("Lỗi trong registerSupplier:", err)
-            const message = err?.message || "Lỗi kết nối mạng"
+            const resp = err?.response?.data ?? err?.response ?? err
+            const message = extractServerMessage(resp) || err?.message || "Lỗi kết nối mạng"
             return { success: false, error: message }
         }
     }
@@ -166,12 +198,12 @@ export function SupplierRegisterForm() {
         const result = await registerSupplier(otp)
         console.log("Registration Result:", result)
         if (result.success) {
-            setSuccess("Đăng ký thành công! Đang chuyển hướng...")
+            setSuccess(result.message ?? "Đăng ký thành công! Đang chuyển hướng...")
             setTimeout(() => {
-                console.log("Chuyển hướng đến /suppliers")
                 navigate("/suppliers")
-            }, 2000)
+            }, 1500)
         } else {
+            // show exact server message (data or data.message) when available
             setError(result.error || "Có lỗi xảy ra khi đăng ký")
         }
         setIsLoading(false)

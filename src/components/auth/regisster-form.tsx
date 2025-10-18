@@ -27,6 +27,42 @@ const STEPS = [
     { id: 3, title: "Quản lý Dock", description: "Cấu hình bến đỗ" },
 ]
 
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null
+
+const extractServerMessage = (body: unknown): string => {
+    if (!body) return ""
+    if (typeof body === "string") return body
+    if (isRecord(body)) {
+        if (typeof body.data === "string") return body.data
+        if (typeof body.message === "string") return body.message
+        if (isRecord(body.data) && typeof (body.data as Record<string, unknown>).message === "string")
+            return (body.data as Record<string, unknown>).message as string
+        if (isRecord(body.data) && typeof (body.data as Record<string, unknown>).error === "string")
+            return (body.data as Record<string, unknown>).error as string
+        if (typeof body.error === "string") return body.error
+    }
+    return ""
+}
+
+const getErrorMessage = (err: unknown): string => {
+    if (!err) return "Lỗi kết nối mạng"
+    if (typeof err === "string") return err
+    if (err instanceof Error) return err.message || "Lỗi"
+    if (isRecord(err)) {
+        const response = (err as Record<string, unknown>).response
+        const candidate = response ?? err
+        const msg = extractServerMessage(candidate)
+        if (msg) return msg
+        if (typeof (err as Record<string, unknown>).message === "string")
+            return (err as Record<string, unknown>).message as string
+    }
+    try {
+        return JSON.stringify(err)
+    } catch {
+        return "Lỗi không xác định"
+    }
+}
+
 export function BoatyardRegisterForm() {
     const navigate = useNavigate()
     const [currentStep, setCurrentStep] = useState(1)
@@ -109,18 +145,23 @@ export function BoatyardRegisterForm() {
         }
         try {
             const payload: OtpRequest = { email: formData.email }
-            const res = await authApi.sendOtp(payload)
-            if (res.status === 201) {
-                setOtpSent(true)
-                setSuccess("Mã OTP đã được gửi đến email của bạn")
-                setCountdown(360) // 3 phút
-            } else {
-                setError(res.message || "Lỗi khi gửi OTP")
-            }
+            const res = (await authApi.sendOtp(payload)) as unknown
+            const r = isRecord(res) ? res : {}
+            const httpStatus = typeof r.status === "number" ? (r.status as number) : undefined
+            const body = isRecord(res) && "data" in res ? (r.data ?? r) : res
+            const msg = extractServerMessage(body) || "Đã gửi OTP"
+
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
-            const message = err?.message || "Lỗi kết nối mạng"
-            setError(message)
+            if (httpStatus === 201 || httpStatus === 200 || (isRecord(body) && ((body as any).status === 201 || (body as any).status === 200))) {
+                setOtpSent(true)
+                setSuccess(msg)
+                setCountdown(180) // 3 phút
+            } else {
+                setError(msg || "Lỗi khi gửi OTP")
+            }
+        } catch (err: unknown) {
+            console.error("Lỗi khi gửi OTP:", err)
+            setError(getErrorMessage(err))
         }
         setOtpLoading(false)
     }
@@ -226,11 +267,11 @@ export function BoatyardRegisterForm() {
         setCurrentStep((prev) => Math.max(prev - 1, 1))
     }
 
-    const registerBoatyard = async (otp: string) => {
+    const registerBoatyard = async (otpValue: string) => {
         try {
             const boatyardData: BoatyardRequest = {
                 ...formData,
-                otp,
+                otp: otpValue,
                 avatar: formData.avatar ?? null,
                 dockSlots: dockSlots.map((s) => ({
                     name: s.name,
@@ -238,16 +279,22 @@ export function BoatyardRegisterForm() {
                     assignedUntil: s.assignedUntil,
                 })),
             }
-            const res = await createBoatyardApi(boatyardData)
-            if (res.status === 201 || res.status === 200 && res.data && res.message) {
-                return { success: true, data: res.data }
-            } else {
-                return { success: false, error: res.message || "Lỗi khi đăng ký" }
-            }
+            const res = (await createBoatyardApi(boatyardData)) as unknown
+            const r = isRecord(res) ? res : {}
+            const httpStatus = typeof r.status === "number" ? (r.status as number) : undefined
+            const body = isRecord(res) && "data" in res ? (r.data ?? r) : res
+            const msg = extractServerMessage(body) || "Hoàn tất đăng ký"
+
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
-            const message = err?.message || "Lỗi kết nối mạng"
-            return { success: false, error: message }
+            if (httpStatus === 201 || httpStatus === 200 || (isRecord(body) && ((body as any).status === 201 || (body as any).status === 200))) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                return { success: true, data: isRecord(body) ? (body as any).data ?? body : body, message: msg }
+            } else {
+                return { success: false, error: msg || (isRecord(r) && typeof r.message === "string" ? r.message : "Lỗi khi đăng ký") }
+            }
+        } catch (err: unknown) {
+            console.error("Lỗi trong registerBoatyard:", err)
+            return { success: false, error: getErrorMessage(err) }
         }
     }
 

@@ -10,6 +10,7 @@ import SupplierDashboardPage from '@/page/supplier/dashboard/dasboard';
 import { createBrowserRouter } from 'react-router-dom';
 import SupplierLayout from '@/page/supplier/layout';
 import ServicesPage from '@/page/repair-shop/services/services';
+import { DockManagement } from '@/components/repair-shop/dock-management';
 
 
 const router = createBrowserRouter([
@@ -45,6 +46,13 @@ const router = createBrowserRouter([
                 <ServicesPage />
             </RepairShopLayout>
         ),
+    },
+    {
+        path: '/repair-shop/dock',
+        element: (
+            <RepairShopLayout>
+                <DockManagement />
+            </RepairShopLayout>)
     },
 
     {

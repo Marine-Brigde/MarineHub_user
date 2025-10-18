@@ -65,7 +65,7 @@ export function RepairShopDashboard() {
                 <Breadcrumb>
                     <BreadcrumbList>
                         <BreadcrumbItem>
-                            <BreadcrumbLink href="/repair-shop">Xưởng sửa chữa</BreadcrumbLink>
+                            <BreadcrumbLink >Xưởng sửa chữa</BreadcrumbLink>
                         </BreadcrumbItem>
                         <BreadcrumbSeparator />
                         <BreadcrumbItem>

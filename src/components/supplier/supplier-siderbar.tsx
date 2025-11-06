@@ -27,6 +27,11 @@ const menuItems = [
         icon: Package,
     },
     {
+        title: "Quản lý danh mục",
+        url: "/supplier/categories",
+        icon: Package,
+    },
+    {
         title: "Đơn hàng",
         url: "/supplier/orders",
         icon: ShoppingCart,

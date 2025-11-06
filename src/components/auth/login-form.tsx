@@ -1,3 +1,4 @@
+// components/auth/LoginForm.tsx
 "use client";
 
 import { useState } from "react";
@@ -7,12 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import { authApi } from "@/api/authApi";
-import type { LoginRequest, LoginResponseData } from "@/models/Auth"; // Updated import path
-import type { ApiResponse } from "@/types/api"; // Import ApiResponse type
+import type { LoginRequest, LoginResponseData } from "@/models/Auth";
+import type { ApiResponse } from "@/types/api";
 
-export function LoginForm() {
+interface LoginFormProps {
+    onLoadingChange: (loading: boolean) => void;
+}
+
+export function LoginForm({ onLoadingChange }: LoginFormProps) {
     const [showPassword, setShowPassword] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState<LoginRequest>({
         usernameOrEmail: "",
         password: "",
@@ -22,17 +26,18 @@ export function LoginForm() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsLoading(true);
+        onLoadingChange(true); // Bắt đầu loading
         setError(null);
 
         try {
+            // Giả lập delay 10 giây (hoặc kết hợp với API thật)
+            await new Promise(resolve => setTimeout(resolve, 4000));
+
             const response: ApiResponse<LoginResponseData> = await authApi.login(formData);
             const { data: loginData } = response;
 
-            // Store the access token in localStorage
             localStorage.setItem("accessToken", loginData.data.accessToken);
 
-            // Redirect based on role
             switch (loginData.data.role) {
                 case "Supplier":
                     navigate("/suppliers");
@@ -47,15 +52,13 @@ export function LoginForm() {
         } catch (err: any) {
             setError(err.message || "Đăng nhập thất bại. Vui lòng kiểm tra thông tin đăng nhập.");
         } finally {
-            setIsLoading(false);
+            onLoadingChange(false); // Kết thúc loading
         }
     };
 
     return (
         <form className="space-y-4" onSubmit={handleSubmit}>
-            {error && (
-                <div className="text-red-500 text-sm text-center">{error}</div>
-            )}
+            {error && <div className="text-red-500 text-sm text-center">{error}</div>}
 
             <div className="space-y-2">
                 <Label htmlFor="usernameOrEmail">Tên đăng nhập hoặc Email</Label>
@@ -64,9 +67,7 @@ export function LoginForm() {
                     type="text"
                     placeholder="Nhập tên đăng nhập hoặc email"
                     value={formData.usernameOrEmail}
-                    onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, usernameOrEmail: e.target.value }))
-                    }
+                    onChange={(e) => setFormData((prev) => ({ ...prev, usernameOrEmail: e.target.value }))}
                     required
                 />
             </div>
@@ -79,9 +80,7 @@ export function LoginForm() {
                         type={showPassword ? "text" : "password"}
                         placeholder="Nhập mật khẩu"
                         value={formData.password}
-                        onChange={(e) =>
-                            setFormData((prev) => ({ ...prev, password: e.target.value }))
-                        }
+                        onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
                         required
                     />
                     <Button
@@ -91,24 +90,14 @@ export function LoginForm() {
                         className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                         onClick={() => setShowPassword(!showPassword)}
                     >
-                        {showPassword ? (
-                            <EyeOff className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                            <Eye className="h-4 w-4 text-muted-foreground" />
-                        )}
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                 </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                    "Đang đăng nhập..."
-                ) : (
-                    <>
-                        <LogIn className="mr-2 h-4 w-4" />
-                        Đăng nhập
-                    </>
-                )}
+            <Button type="submit" className="w-full">
+                <LogIn className="mr-2 h-4 w-4" />
+                Đăng nhập
             </Button>
         </form>
     );

@@ -11,6 +11,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import SupplierLayout from '@/page/supplier/layout';
 import ServicesPage from '@/page/repair-shop/services/services';
 import { DockManagement } from '@/components/repair-shop/dock-management';
+import CategoryManagement from '@/components/supplier/category-management';
 
 
 const router = createBrowserRouter([
@@ -71,6 +72,14 @@ const router = createBrowserRouter([
             </SupplierLayout>
         )
     },
+    {
+        path: '/supplier/categories',
+        element: (
+            <SupplierLayout>
+                <CategoryManagement />
+            </SupplierLayout>
+        )
+    }
 
 ]);
 

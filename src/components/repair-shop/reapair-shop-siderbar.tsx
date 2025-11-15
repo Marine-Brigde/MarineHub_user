@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom"
-import { Anchor, BarChart3, Wrench, Calendar, Ship, MapPin, FileText, Settings, LogOut } from "lucide-react"
+import { Anchor, BarChart3, Wrench, Calendar, Ship, MapPin, FileText, Settings, LogOut, User } from "lucide-react"
 
 import {
     Sidebar,
@@ -88,6 +88,20 @@ export function RepairShopSidebar() {
                 <SidebarSeparator className="my-4" />
 
                 <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton
+                            asChild
+                            tooltip="Thông tin cá nhân"
+                            isActive={location.pathname.startsWith("/repair-shop/profile")}
+                            className={`flex items-center gap-4 px-5 py-3 rounded-lg text-base transition-all
+                                ${location.pathname.startsWith("/repair-shop/profile") ? "bg-primary/10 text-primary font-semibold" : "hover:bg-primary/10"}`}
+                        >
+                            <Link to="/repair-shop/profile">
+                                <User className="h-6 w-6" />
+                                <span>Thông tin cá nhân</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton
                             asChild

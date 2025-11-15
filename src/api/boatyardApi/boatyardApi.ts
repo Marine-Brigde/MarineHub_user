@@ -67,7 +67,7 @@ export const getBoatyardDetailApi = async (): Promise<ApiResponse<BoatyardItem>>
 
 // ✏️ PATCH - Cập nhật Boatyard
 export const updateBoatyardApi = async (
-    data: Partial<Omit<BoatyardRequest, "email" | "username" | "otp">>
+    data: Partial<Omit<BoatyardRequest, "email" | "username" | "otp">> & { personalIntroduction?: string; phoneNumber?: string }
 ): Promise<ApiResponse<string>> => {
     const formData = new FormData();
 
@@ -75,8 +75,10 @@ export const updateBoatyardApi = async (
     if (data.longitude) formData.append("Longitude", data.longitude);
     if (data.latitude) formData.append("Latitude", data.latitude);
     if (data.fullName) formData.append("FullName", data.fullName);
+    if (data.phoneNumber) formData.append("PhoneNumber", data.phoneNumber);
     if (data.password) formData.append("Password", data.password);
     if (data.address) formData.append("Address", data.address);
+    if (data.personalIntroduction !== undefined) formData.append("PersonalIntroduction", data.personalIntroduction);
     if (data.avatar) formData.append("Avatar", data.avatar);
 
     const response = await axiosClient.patch<ApiResponse<string>>("/v1/boatyards", formData, {

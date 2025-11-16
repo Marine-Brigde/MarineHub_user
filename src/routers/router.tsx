@@ -13,6 +13,7 @@ import ServicesPage from '@/page/repair-shop/services/services';
 import { DockManagement } from '@/components/repair-shop/dock-management';
 import CategoryManagement from '@/components/supplier/category-management';
 import BoatyardProfilePage from '@/page/repair-shop/profile/profile';
+import SupplierProfilePage from '@/page/supplier/profile/profile';
 
 
 const router = createBrowserRouter([
@@ -86,6 +87,14 @@ const router = createBrowserRouter([
         element: (
             <SupplierLayout>
                 <CategoryManagement />
+            </SupplierLayout>
+        )
+    },
+    {
+        path: '/supplier/profile',
+        element: (
+            <SupplierLayout>
+                <SupplierProfilePage />
             </SupplierLayout>
         )
     }

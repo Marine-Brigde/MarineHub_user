@@ -1,6 +1,7 @@
 "use client"
 
-import { Anchor, BarChart3, Package, ShoppingCart, MapPin, MessageSquare, Settings, LogOut } from "lucide-react"
+import { Anchor, BarChart3, Package, ShoppingCart, MapPin, MessageSquare, Settings, LogOut, User } from "lucide-react"
+import { useLocation } from "react-router-dom"
 
 import {
     Sidebar,
@@ -49,6 +50,8 @@ const menuItems = [
 ]
 
 export function SupplierSidebar() {
+    const location = useLocation();
+
     return (
         <Sidebar className="min-w-[270px]">
             <SidebarHeader className="border-b border-sidebar-border">
@@ -63,21 +66,25 @@ export function SupplierSidebar() {
 
             <SidebarContent>
                 <SidebarMenu className="gap-2 mt-4">
-                    {menuItems.map((item) => (
-                        <SidebarMenuItem key={item.title} className="mb-2">
-                            <SidebarMenuButton
-                                asChild
-                                isActive={false}
-                                tooltip={item.title}
-                                className="flex items-center gap-4 px-5 py-3 rounded-lg text-base hover:bg-primary/10 transition-all"
-                            >
-                                <Link to={item.url}>
-                                    <item.icon className="h-6 w-6" />
-                                    <span>{item.title}</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    ))}
+                    {menuItems.map((item) => {
+                        const isActive = location.pathname.startsWith(item.url);
+                        return (
+                            <SidebarMenuItem key={item.title} className="mb-2">
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={isActive}
+                                    tooltip={item.title}
+                                    className={`flex items-center gap-4 px-5 py-3 rounded-lg text-base transition-all
+                                        ${isActive ? "bg-primary/10 text-primary font-semibold" : "hover:bg-primary/10"}`}
+                                >
+                                    <Link to={item.url}>
+                                        <item.icon className="h-6 w-6" />
+                                        <span>{item.title}</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        )
+                    })}
                 </SidebarMenu>
 
                 <SidebarSeparator className="my-4" />
@@ -86,8 +93,24 @@ export function SupplierSidebar() {
                     <SidebarMenuItem>
                         <SidebarMenuButton
                             asChild
+                            tooltip="Thông tin cá nhân"
+                            isActive={location.pathname.startsWith("/supplier/profile")}
+                            className={`flex items-center gap-4 px-5 py-3 rounded-lg text-base transition-all
+                                ${location.pathname.startsWith("/supplier/profile") ? "bg-primary/10 text-primary font-semibold" : "hover:bg-primary/10"}`}
+                        >
+                            <Link to="/supplier/profile">
+                                <User className="h-6 w-6" />
+                                <span>Thông tin cá nhân</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton
+                            asChild
                             tooltip="Cài đặt"
-                            className="flex items-center gap-4 px-5 py-3 rounded-lg text-base hover:bg-primary/10 transition-all"
+                            isActive={location.pathname.startsWith("/supplier/settings")}
+                            className={`flex items-center gap-4 px-5 py-3 rounded-lg text-base transition-all
+                                ${location.pathname.startsWith("/supplier/settings") ? "bg-primary/10 text-primary font-semibold" : "hover:bg-primary/10"}`}
                         >
                             <Link to="/supplier/settings">
                                 <Settings className="h-6 w-6" />

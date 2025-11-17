@@ -15,6 +15,7 @@ import CategoryManagement from '@/components/supplier/category-management';
 import BoatyardProfilePage from '@/page/repair-shop/profile/profile';
 import SupplierProfilePage from '@/page/supplier/profile/profile';
 import SupplierComplaintsPage from '@/page/supplier/complaints/complaints';
+import BoatyardComplaintsPage from '@/page/repair-shop/complaints/complaints';
 
 
 const router = createBrowserRouter([
@@ -63,6 +64,14 @@ const router = createBrowserRouter([
         element: (
             <RepairShopLayout>
                 <BoatyardProfilePage />
+            </RepairShopLayout>
+        )
+    },
+    {
+        path: '/repair-shop/complaints',
+        element: (
+            <RepairShopLayout>
+                <BoatyardComplaintsPage />
             </RepairShopLayout>
         )
     },

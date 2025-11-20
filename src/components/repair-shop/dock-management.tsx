@@ -119,10 +119,16 @@ export function DockManagement() {
                 const payload: UpdateDockSlotRequest = {
                     name,
                     isActive,
+                    assignedFrom: (editDock as any).assignedFrom,
+                    assignedUntil: (editDock as any).assignedUntil,
                 }
                 await updateDockSlotApi(editDock.id, payload)
             } else {
-                const payload: CreateDockSlotRequest = { name }
+                const payload: CreateDockSlotRequest = {
+                    name,
+                    assignedFrom: null as any,
+                    assignedUntil: null as any,
+                }
                 await createDockSlotApi(payload)
             }
 
@@ -142,6 +148,8 @@ export function DockManagement() {
             const payload: UpdateDockSlotRequest = {
                 name: dock.name,
                 isActive: !dock.isActive,
+                assignedFrom: (dock as any).assignedFrom ?? null,
+                assignedUntil: (dock as any).assignedUntil ?? null,
             }
             await updateDockSlotApi(dock.id, payload)
             fetchDocks()

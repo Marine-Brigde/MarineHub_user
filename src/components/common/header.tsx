@@ -29,9 +29,15 @@ export default function Header() {
 
     // Check authentication state and load user info
     useEffect(() => {
+        let isMounted = true
+        let hasLoadedUserInfo = false
+
         const checkAuth = async () => {
             const token = localStorage.getItem("accessToken")
             const role = localStorage.getItem("userRole") as Role | null
+            
+            if (!isMounted) return
+
             setIsAuthenticated(!!token)
             setUserRole(role)
 
@@ -41,38 +47,47 @@ export default function Header() {
                 const email = localStorage.getItem("email") || ""
                 
                 // Set default info first
-                setUserInfo({
-                    name: username || (role === "Boatyard" ? "Xưởng Sửa chữa" : "Nhà cung cấp"),
-                    email: email || "user@example.com",
-                })
+                if (isMounted) {
+                    setUserInfo({
+                        name: username || (role === "Boatyard" ? "Xưởng Sửa chữa" : "Nhà cung cấp"),
+                        email: email || "user@example.com",
+                    })
+                }
 
-                // Load detailed info from API (avatar, fullName, etc.)
-                try {
-                    if (role === "Boatyard") {
-                        const response = await getBoatyardDetailApi()
-                        if (response.status === 200 && response.data) {
-                            setUserInfo({
-                                name: response.data.name || response.data.fullName || username || "Xưởng Sửa chữa",
-                                email: response.data.email || email || "user@example.com",
-                                avatarUrl: response.data.avatarUrl || undefined,
-                            })
+                // Load detailed info from API only once (not on every check)
+                if (!hasLoadedUserInfo) {
+                    hasLoadedUserInfo = true
+                    try {
+                        if (role === "Boatyard") {
+                            const response = await getBoatyardDetailApi()
+                            if (isMounted && response.status === 200 && response.data) {
+                                setUserInfo({
+                                    name: response.data.name || response.data.fullName || username || "Xưởng Sửa chữa",
+                                    email: response.data.email || email || "user@example.com",
+                                    avatarUrl: response.data.avatarUrl || undefined,
+                                })
+                            }
+                        } else if (role === "Supplier") {
+                            const response = await getSupplierDetailApi()
+                            if (isMounted && response.status === 200 && response.data) {
+                                setUserInfo({
+                                    name: response.data.name || response.data.fullName || username || "Nhà cung cấp",
+                                    email: response.data.email || email || "user@example.com",
+                                    avatarUrl: response.data.avatarUrl || undefined,
+                                })
+                            }
                         }
-                    } else if (role === "Supplier") {
-                        const response = await getSupplierDetailApi()
-                        if (response.status === 200 && response.data) {
-                            setUserInfo({
-                                name: response.data.name || response.data.fullName || username || "Nhà cung cấp",
-                                email: response.data.email || email || "user@example.com",
-                                avatarUrl: response.data.avatarUrl || undefined,
-                            })
-                        }
+                    } catch (error) {
+                        // Silently fail - use default info from localStorage
+                        console.error("Error loading user details:", error)
+                        hasLoadedUserInfo = false // Allow retry on next mount if error
                     }
-                } catch (error) {
-                    // Silently fail - use default info from localStorage
-                    console.error("Error loading user details:", error)
                 }
             } else {
-                setUserInfo(null)
+                if (isMounted) {
+                    setUserInfo(null)
+                }
+                hasLoadedUserInfo = false
             }
         }
 
@@ -80,19 +95,17 @@ export default function Header() {
 
         // Listen for storage changes (for logout/login from other tabs)
         const handleStorageChange = (e: StorageEvent) => {
-            if (e.key === "accessToken" || e.key === "userRole") {
+            if (e.key === "accessToken" || e.key === "userRole" || e.key === "username" || e.key === "email") {
+                hasLoadedUserInfo = false // Reset flag on storage change
                 checkAuth()
             }
         }
 
         window.addEventListener("storage", handleStorageChange)
 
-        // Poll for changes (in case of same-tab logout)
-        const interval = setInterval(checkAuth, 1000)
-
         return () => {
+            isMounted = false
             window.removeEventListener("storage", handleStorageChange)
-            clearInterval(interval)
         }
     }, [])
 

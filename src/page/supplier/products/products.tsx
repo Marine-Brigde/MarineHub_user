@@ -1,4 +1,4 @@
-import { ProductsManagement } from "@/components/supplier/products-management";
+import ProductsManagement from "@/components/supplier/products-management";
 
 
 export default function ProductsPage() {

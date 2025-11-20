@@ -37,13 +37,16 @@ export function LoginForm({ onLoadingChange }: LoginFormProps) {
             const { data: loginData } = response;
 
             localStorage.setItem("accessToken", loginData.data.accessToken);
+            localStorage.setItem("userRole", loginData.data.role);
+            localStorage.setItem("username", loginData.data.username);
+            localStorage.setItem("email", loginData.data.email);
 
             switch (loginData.data.role) {
                 case "Supplier":
                     navigate("/supplier/dashboard");
                     break;
                 case "Boatyard":
-                    navigate("/repair-shop/dashboard");
+                    navigate("/");
                     break;
                 default:
                     navigate("/");

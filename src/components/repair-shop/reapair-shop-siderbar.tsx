@@ -145,6 +145,9 @@ export function RepairShopSidebar() {
                             className="flex items-center gap-4 px-5 py-3 rounded-lg text-base hover:bg-red-100 transition-all"
                             onClick={() => {
                                 localStorage.removeItem("accessToken")
+                                localStorage.removeItem("userRole")
+                                localStorage.removeItem("username")
+                                localStorage.removeItem("email")
                             }}
                         >
                             <Link to="/login">

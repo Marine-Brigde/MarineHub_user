@@ -59,6 +59,44 @@ const getErrorMessage = (err: unknown) => {
     }
 }
 
+const toLocalInputValue = (iso?: string | null) => {
+    if (!iso) return ""
+    const date = new Date(iso)
+    const timezoneOffset = date.getTimezoneOffset() * 60000
+    return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16)
+}
+
+const toIsoString = (value: string) => {
+    if (!value) return null
+    try {
+        return new Date(value).toISOString()
+    } catch {
+        return null
+    }
+}
+
+const formatDateTime = (iso?: string | null) => {
+    if (!iso) return "--"
+    try {
+        return new Date(iso).toLocaleString("vi-VN", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        })
+    } catch {
+        return "--"
+    }
+}
+
+type DockFormState = {
+    name: string
+    isActive: boolean
+    assignedFrom: string
+    assignedUntil: string
+}
+
 export function DockManagement() {
     const [searchTerm, setSearchTerm] = useState("")
     const [docks, setDocks] = useState<DockSlot[]>([])
@@ -67,7 +105,12 @@ export function DockManagement() {
     const [editDock, setEditDock] = useState<DockSlot | null>(null)
     const [formLoading, setFormLoading] = useState(false)
     const [formError, setFormError] = useState("")
-    const [formData, setFormData] = useState({ name: "", isActive: true })
+    const [formData, setFormData] = useState<DockFormState>({
+        name: "",
+        isActive: true,
+        assignedFrom: "",
+        assignedUntil: "",
+    })
     const [toggleLoading, setToggleLoading] = useState<string | null>(null)
 
     const fetchDocks = () => {
@@ -89,14 +132,24 @@ export function DockManagement() {
 
     const handleOpenCreate = () => {
         setEditDock(null)
-        setFormData({ name: "", isActive: true })
+        setFormData({
+            name: "",
+            isActive: true,
+            assignedFrom: "",
+            assignedUntil: "",
+        })
         setFormError("")
         setShowDialog(true)
     }
 
     const handleEditClick = (dock: DockSlot) => {
         setEditDock(dock)
-        setFormData({ name: dock.name, isActive: dock.isActive })
+        setFormData({
+            name: dock.name,
+            isActive: dock.isActive,
+            assignedFrom: toLocalInputValue(dock.assignedFrom),
+            assignedUntil: toLocalInputValue(dock.assignedUntil),
+        })
         setFormError("")
         setShowDialog(true)
     }
@@ -108,9 +161,40 @@ export function DockManagement() {
         try {
             const name = formData.name.trim()
             const isActive = formData.isActive
+            const assignedFromIso = toIsoString(formData.assignedFrom)
+            const assignedUntilIso = toIsoString(formData.assignedUntil)
 
             if (!name) {
                 setFormError("Tên dock không được để trống")
+                setFormLoading(false)
+                return
+            }
+
+            // Validate thời gian nhận (assignedFrom) phải >= thời gian tạo
+            if (assignedFromIso) {
+                let minAllowedDate: string
+                let minDateDescription: string
+                
+                if (editDock?.createdDate) {
+                    // Nếu đang sửa, thời gian nhận phải >= createdDate
+                    minAllowedDate = editDock.createdDate
+                    minDateDescription = `thời gian tạo (${formatDateTime(editDock.createdDate)})`
+                } else {
+                    // Nếu tạo mới, thời gian nhận phải >= thời gian hiện tại
+                    minAllowedDate = new Date().toISOString()
+                    minDateDescription = "thời gian hiện tại"
+                }
+                
+                if (assignedFromIso < minAllowedDate) {
+                    setFormError(`Thời gian nhận phải bằng hoặc sau ${minDateDescription}`)
+                    setFormLoading(false)
+                    return
+                }
+            }
+
+            // Validate thời gian kết thúc phải sau thời gian bắt đầu
+            if (assignedFromIso && assignedUntilIso && assignedFromIso > assignedUntilIso) {
+                setFormError("Thời gian kết thúc phải sau thời gian bắt đầu")
                 setFormLoading(false)
                 return
             }
@@ -119,15 +203,15 @@ export function DockManagement() {
                 const payload: UpdateDockSlotRequest = {
                     name,
                     isActive,
-                    assignedFrom: (editDock as any).assignedFrom,
-                    assignedUntil: (editDock as any).assignedUntil,
+                    assignedFrom: assignedFromIso,
+                    assignedUntil: assignedUntilIso,
                 }
                 await updateDockSlotApi(editDock.id, payload)
             } else {
                 const payload: CreateDockSlotRequest = {
                     name,
-                    assignedFrom: null as any,
-                    assignedUntil: null as any,
+                    assignedFrom: assignedFromIso,
+                    assignedUntil: assignedUntilIso,
                 }
                 await createDockSlotApi(payload)
             }
@@ -148,8 +232,8 @@ export function DockManagement() {
             const payload: UpdateDockSlotRequest = {
                 name: dock.name,
                 isActive: !dock.isActive,
-                assignedFrom: (dock as any).assignedFrom ?? null,
-                assignedUntil: (dock as any).assignedUntil ?? null,
+                assignedFrom: dock.assignedFrom ?? null,
+                assignedUntil: dock.assignedUntil ?? null,
             }
             await updateDockSlotApi(dock.id, payload)
             fetchDocks()
@@ -221,9 +305,11 @@ export function DockManagement() {
                     <Table>
                         <TableHeader>
                             <TableRow className="hover:bg-transparent border-border/50">
-                                <TableHead className="w-[50%]">Tên Dock</TableHead>
-                                <TableHead className="w-[25%]">Trạng thái</TableHead>
-                                <TableHead className="w-[25%] text-right">Thao tác</TableHead>
+                                <TableHead className="w-[30%]">Tên Dock</TableHead>
+                                <TableHead className="w-[20%]">Thời gian nhận</TableHead>
+                                <TableHead className="w-[20%]">Thời gian trả</TableHead>
+                                <TableHead className="w-[15%]">Trạng thái</TableHead>
+                                <TableHead className="w-[15%] text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -253,6 +339,12 @@ export function DockManagement() {
                                                 <p className="font-medium text-foreground">{dock.name}</p>
                                                 <p className="text-xs text-muted-foreground font-mono">ID: {dock.id}</p>
                                             </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <p className="text-sm text-foreground">{formatDateTime(dock.assignedFrom)}</p>
+                                        </TableCell>
+                                        <TableCell>
+                                            <p className="text-sm text-foreground">{formatDateTime(dock.assignedUntil)}</p>
                                         </TableCell>
 
                                         {/* Status cell: compact switch + badge */}
@@ -330,6 +422,34 @@ export function DockManagement() {
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     required
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="assignedFrom">Thời gian nhận (assignedFrom)</Label>
+                                <Input
+                                    id="assignedFrom"
+                                    type="datetime-local"
+                                    value={formData.assignedFrom}
+                                    onChange={(e) => setFormData({ ...formData, assignedFrom: e.target.value })}
+                                    placeholder="Chọn thời gian nhận"
+                                    min={editDock?.createdDate 
+                                        ? toLocalInputValue(editDock.createdDate) 
+                                        : new Date().toISOString().slice(0, 16)}
+                                />
+                                {editDock?.createdDate && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Thời gian nhận phải từ {formatDateTime(editDock.createdDate)} trở đi
+                                    </p>
+                                )}
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="assignedUntil">Thời gian trả (assignedUntil)</Label>
+                                <Input
+                                    id="assignedUntil"
+                                    type="datetime-local"
+                                    value={formData.assignedUntil}
+                                    onChange={(e) => setFormData({ ...formData, assignedUntil: e.target.value })}
+                                    placeholder="Chọn thời gian trả"
                                 />
                             </div>
                             <div className="flex items-center justify-between rounded-lg border border-border/50 p-3">

@@ -18,6 +18,7 @@ import BoatyardComplaintsPage from '@/page/repair-shop/complaints/complaints';
 import PublicProductsPage from '@/page/products/products';
 import PublicSuppliersPage from '@/page/suppliers/suppliers';
 import SupplierDashboardPage from '@/page/supplier/dashboard/dasboard';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 
 const router = createBrowserRouter([
@@ -44,41 +45,51 @@ const router = createBrowserRouter([
     {
         path: '/repair-shop/dashboard',
         element: (
-            <RepairShopLayout>
-                <RepairShopDashboardPage />
-            </RepairShopLayout>
+            <ProtectedRoute allowedRole="Boatyard">
+                <RepairShopLayout>
+                    <RepairShopDashboardPage />
+                </RepairShopLayout>
+            </ProtectedRoute>
         ),
     },
     {
         path: '/repair-shop/services',
-
         element: (
-            <RepairShopLayout>
-                <ServicesPage />
-            </RepairShopLayout>
+            <ProtectedRoute allowedRole="Boatyard">
+                <RepairShopLayout>
+                    <ServicesPage />
+                </RepairShopLayout>
+            </ProtectedRoute>
         ),
     },
     {
         path: '/repair-shop/dock',
         element: (
-            <RepairShopLayout>
-                <DockManagement />
-            </RepairShopLayout>)
+            <ProtectedRoute allowedRole="Boatyard">
+                <RepairShopLayout>
+                    <DockManagement />
+                </RepairShopLayout>
+            </ProtectedRoute>
+        )
     },
     {
         path: '/repair-shop/profile',
         element: (
-            <RepairShopLayout>
-                <BoatyardProfilePage />
-            </RepairShopLayout>
+            <ProtectedRoute allowedRole="Boatyard">
+                <RepairShopLayout>
+                    <BoatyardProfilePage />
+                </RepairShopLayout>
+            </ProtectedRoute>
         )
     },
     {
         path: '/repair-shop/complaints',
         element: (
-            <RepairShopLayout>
-                <BoatyardComplaintsPage />
-            </RepairShopLayout>
+            <ProtectedRoute allowedRole="Boatyard">
+                <RepairShopLayout>
+                    <BoatyardComplaintsPage />
+                </RepairShopLayout>
+            </ProtectedRoute>
         )
     },
 
@@ -89,41 +100,51 @@ const router = createBrowserRouter([
     {
         path: '/supplier/dashboard',
         element: (
-            <SupplierLayout>
-                <SupplierDashboardPage />
-            </SupplierLayout>
+            <ProtectedRoute allowedRole="Supplier">
+                <SupplierLayout>
+                    <SupplierDashboardPage />
+                </SupplierLayout>
+            </ProtectedRoute>
         )
     },
     {
         path: '/supplier/products',
         element: (
-            <SupplierLayout>
-                <SupplierProductsPage />
-            </SupplierLayout>
+            <ProtectedRoute allowedRole="Supplier">
+                <SupplierLayout>
+                    <SupplierProductsPage />
+                </SupplierLayout>
+            </ProtectedRoute>
         )
     },
     {
         path: '/supplier/categories',
         element: (
-            <SupplierLayout>
-                <CategoryManagement />
-            </SupplierLayout>
+            <ProtectedRoute allowedRole="Supplier">
+                <SupplierLayout>
+                    <CategoryManagement />
+                </SupplierLayout>
+            </ProtectedRoute>
         )
     },
     {
         path: '/supplier/profile',
         element: (
-            <SupplierLayout>
-                <SupplierProfilePage />
-            </SupplierLayout>
+            <ProtectedRoute allowedRole="Supplier">
+                <SupplierLayout>
+                    <SupplierProfilePage />
+                </SupplierLayout>
+            </ProtectedRoute>
         )
     },
     {
         path: '/supplier/complaints',
         element: (
-            <SupplierLayout>
-                <SupplierComplaintsPage />
-            </SupplierLayout>
+            <ProtectedRoute allowedRole="Supplier">
+                <SupplierLayout>
+                    <SupplierComplaintsPage />
+                </SupplierLayout>
+            </ProtectedRoute>
         )
     }
 

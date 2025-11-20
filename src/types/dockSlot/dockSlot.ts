@@ -3,9 +3,10 @@
 export interface DockSlot {
     id: string
     name: string
-    assignedFrom: string
-    assignedUntil: string
+    assignedFrom: string | null
+    assignedUntil: string | null
     isActive: boolean
+    createdDate?: string | null
 }
 
 export interface DockSlotListResponse {
@@ -24,14 +25,14 @@ export interface BaseResponse<T> {
 
 export interface CreateDockSlotRequest {
     name: string
-    assignedFrom: string
-    assignedUntil: string
+    assignedFrom: string | null
+    assignedUntil: string | null
 }
 
 export interface UpdateDockSlotRequest {
     name: string
-    assignedFrom: string
-    assignedUntil: string
+    assignedFrom: string | null
+    assignedUntil: string | null
     isActive: boolean
 }
 

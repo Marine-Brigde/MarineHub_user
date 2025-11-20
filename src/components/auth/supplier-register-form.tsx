@@ -117,7 +117,10 @@ export function SupplierRegisterForm() {
                 // lưu accessToken nếu server trả
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const token = (body && (body.accessToken ?? body.data?.accessToken)) ?? (res as any)?.accessToken
-                if (token) localStorage.setItem("accessToken", token)
+                if (token) {
+                    localStorage.setItem("accessToken", token)
+                    localStorage.setItem("userRole", "Supplier")
+                }
                 return { success: true, data: body?.data ?? body, message: msg }
             } else {
                 // trả về message chính xác từ server (ví dụ data: "Mã OTP không chính xác")
@@ -200,7 +203,7 @@ export function SupplierRegisterForm() {
         if (result.success) {
             setSuccess(result.message ?? "Đăng ký thành công! Đang chuyển hướng...")
             setTimeout(() => {
-                navigate("/suppliers")
+                navigate("/supplier/dashboard")
             }, 1500)
         } else {
             // show exact server message (data or data.message) when available

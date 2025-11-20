@@ -40,7 +40,7 @@ export function LoginForm({ onLoadingChange }: LoginFormProps) {
 
             switch (loginData.data.role) {
                 case "Supplier":
-                    navigate("/suppliers");
+                    navigate("/supplier/dashboard");
                     break;
                 case "Boatyard":
                     navigate("/repair-shop/dashboard");

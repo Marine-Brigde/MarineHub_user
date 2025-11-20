@@ -19,7 +19,7 @@ import { Link } from "react-router-dom"
 const menuItems = [
     {
         title: "Tổng quan",
-        url: "/suppliers",
+        url: "/supplier/dashboard",
         icon: BarChart3,
     },
     {

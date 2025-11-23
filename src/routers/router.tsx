@@ -16,6 +16,7 @@ import SupplierProfilePage from '@/page/supplier/profile/profile';
 import SupplierComplaintsPage from '@/page/supplier/complaints/complaints';
 import BoatyardComplaintsPage from '@/page/repair-shop/complaints/complaints';
 import PublicProductsPage from '@/page/products/products';
+import ProductDetailPage from '@/page/products/productDetail';
 import PublicSuppliersPage from '@/page/suppliers/suppliers';
 import SupplierDashboardPage from '@/page/supplier/dashboard/dasboard';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -29,6 +30,10 @@ const router = createBrowserRouter([
     {
         path: '/products',
         element: <PublicProductsPage />,
+    },
+    {
+        path: '/products/:id',
+        element: <ProductDetailPage />,
     },
     {
         path: '/login',

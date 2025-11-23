@@ -10,6 +10,8 @@ export interface Product {
     supplierId: string
     supplierName: string
     imageUrl: string
+    productImages?: ProductImage[]
+    productVariants?: ProductVariant[]
     createdDate: string
     lastModifiedDate: string
 }
@@ -34,5 +36,17 @@ export interface GetProductsParams {
     sortBy?: string
     isAsc?: boolean
     name?: string
+}
+
+export interface ProductImage {
+    id: string
+    imageUrl: string
+    sortOrder?: number | null
+}
+
+export interface ProductVariant {
+    id: string
+    name: string
+    price: number
 }
 

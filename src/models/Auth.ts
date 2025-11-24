@@ -42,4 +42,28 @@ export interface RegisterResponseData {
     role: Role
 }
 
+// 👤 Profile Data
+export interface ProfileData {
+    id: string
+    fullName: string
+    address: string
+    phoneNumber: string
+    avatarUrl: string
+}
+
+// ✏️ Update Profile Request
+export interface UpdateProfileRequest {
+    fullName?: string
+    phoneNumber?: string
+    address?: string
+    avatar?: File | null
+    personalIntroduction?: string
+}
+
+// 📦 Profile ApiResponse (đồng bộ với các API khác)
+export interface ProfileApiResponse<T> {
+    status: number
+    message: string
+    data: T
+}
 

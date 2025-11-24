@@ -1,6 +1,6 @@
 // src/api/authApi.ts
 
-import type { LoginRequest, LoginResponseData, OtpRequest, RegisterRequest, RegisterResponseData } from "@/models/Auth"
+import type { LoginRequest, LoginResponseData, OtpRequest, RegisterRequest, RegisterResponseData, ProfileData, UpdateProfileRequest, ProfileApiResponse } from "@/models/Auth"
 import type { ApiResponse } from "@/types/api"
 import axiosClient from "./axiosClient"
 
@@ -35,5 +35,30 @@ export const authApi = {
             headers: { 'Content-Type': 'multipart/form-data' }
         })
     },
+}
+
+// 👤 GET - Lấy thông tin profile của người dùng hiện tại
+export const getProfileApi = async (): Promise<ProfileApiResponse<ProfileData>> => {
+    const response = await axiosClient.get<ProfileApiResponse<ProfileData>>("/v1/auth/profile")
+    return response.data
+}
+
+// ✏️ PATCH - Cập nhật profile
+export const updateProfileApi = async (
+    data: UpdateProfileRequest
+): Promise<ProfileApiResponse<string>> => {
+    const formData = new FormData()
+
+    if (data.fullName) formData.append("FullName", data.fullName)
+    if (data.phoneNumber) formData.append("PhoneNumber", data.phoneNumber)
+    if (data.address) formData.append("Address", data.address)
+    if (data.personalIntroduction !== undefined) formData.append("PersonalIntroduction", data.personalIntroduction)
+    if (data.avatar) formData.append("Avatar", data.avatar)
+
+    const response = await axiosClient.patch<ProfileApiResponse<string>>("/v1/auth/profile", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+    })
+
+    return response.data
 }
 

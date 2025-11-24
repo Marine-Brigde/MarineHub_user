@@ -10,8 +10,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import { User, Phone, FileText, Save, Loader2, CheckCircle2, Camera, Package } from "lucide-react"
-import { getSupplierDetailApi, updateSupplierApi } from "@/api/supplierApi"
-import type { SupplierItem } from "@/models/supplier"
+import { getProfileApi, updateProfileApi } from "@/api/authApi"
+import type { ProfileData } from "@/models/Auth"
 
 export default function SupplierProfilePage() {
     const [isLoading, setIsLoading] = useState(true)
@@ -20,21 +20,16 @@ export default function SupplierProfilePage() {
     const [success, setSuccess] = useState("")
     const [isEditing, setIsEditing] = useState(false)
 
-    const [profileData, setProfileData] = useState<SupplierItem & { personalIntroduction?: string }>({
+    const [profileData, setProfileData] = useState<ProfileData & { personalIntroduction?: string; email?: string; username?: string; name?: string }>({
         id: "",
-        name: "",
-        longitude: "",
-        latitude: "",
-        accountId: "",
         fullName: "",
-        username: "",
-        email: "",
         address: "",
         phoneNumber: "",
         avatarUrl: "",
-        createdDate: "",
-        lastModifiedDate: "",
         personalIntroduction: "",
+        email: "",
+        username: "",
+        name: "",
     })
 
     const [formData, setFormData] = useState({
@@ -53,12 +48,19 @@ export default function SupplierProfilePage() {
         try {
             setIsLoading(true)
             setError("")
-            const response = await getSupplierDetailApi()
+            const response = await getProfileApi()
             
             if (response.status === 200 && response.data) {
+                // Lấy thông tin từ localStorage cho các field không có trong API response
+                const email = localStorage.getItem("email") || ""
+                const username = localStorage.getItem("username") || ""
+                
                 setProfileData({
                     ...response.data,
                     personalIntroduction: (response.data as any).personalIntroduction || "",
+                    email,
+                    username,
+                    name: "", // Không có trong API response
                 })
                 setFormData({
                     fullName: response.data.fullName || "",
@@ -113,7 +115,7 @@ export default function SupplierProfilePage() {
                 updateData.avatar = formData.avatar
             }
 
-            const response = await updateSupplierApi(updateData)
+            const response = await updateProfileApi(updateData)
 
             if (response.status === 200) {
                 setSuccess("Cập nhật thông tin thành công!")
@@ -276,7 +278,7 @@ export default function SupplierProfilePage() {
                                     <Package className="h-3 w-3" />
                                     Tên công ty
                                 </Label>
-                                <p className="text-sm font-medium">{profileData.name}</p>
+                                <p className="text-sm font-medium">{profileData.name || "Chưa cập nhật"}</p>
                             </div>
                         </CardContent>
                     </Card>

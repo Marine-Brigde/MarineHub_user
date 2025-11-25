@@ -35,7 +35,9 @@ export default function Header() {
         const checkAuth = async () => {
             const token = localStorage.getItem("accessToken")
             const role = localStorage.getItem("userRole") as Role | null
-            
+            // Debug: log current auth values
+            // eslint-disable-next-line no-console
+            console.debug('[Header] checkAuth token present=', !!token, 'role=', role)
             if (!isMounted) return
 
             setIsAuthenticated(!!token)
@@ -45,7 +47,7 @@ export default function Header() {
             if (token && role) {
                 const username = localStorage.getItem("username") || ""
                 const email = localStorage.getItem("email") || ""
-                
+
                 // Set default info first
                 if (isMounted) {
                     setUserInfo({
@@ -95,8 +97,12 @@ export default function Header() {
 
         // Listen for storage changes (for logout/login from other tabs)
         const handleStorageChange = (e: StorageEvent) => {
+            // eslint-disable-next-line no-console
+            console.debug('[Header] storage event', e.key, e.newValue)
             if (e.key === "accessToken" || e.key === "userRole" || e.key === "username" || e.key === "email") {
                 hasLoadedUserInfo = false // Reset flag on storage change
+                // eslint-disable-next-line no-console
+                console.debug('[Header] reacting to storage change, re-checking auth')
                 checkAuth()
             }
         }

@@ -15,6 +15,8 @@ export interface BoatyardRequest {
     password: string;
     address: string;
     phoneNumber: string;
+    bankName?: string;
+    bankNo?: string;
     otp: string;
     avatar?: File | null;
     dockSlots: DockSlot[];

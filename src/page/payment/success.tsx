@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import PaymentResult from '@/components/payment/PaymentResult'
 import Header from '@/components/common/header'
@@ -20,7 +20,6 @@ export default function PaymentSuccessPage() {
     // determine payment status from query params (mirror PaymentResult logic)
     const statusRaw = (searchParams.get('status') || searchParams.get('payment_status') || searchParams.get('paymentStatus') || searchParams.get('result') || '')?.toLowerCase()
     const isSuccess = ['success', 'paid', 'completed', 'ok'].includes(statusRaw)
-    const isPending = ['pending'].includes(statusRaw)
 
     useEffect(() => {
         // look for common param names that payment providers might use

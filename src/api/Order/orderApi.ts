@@ -6,7 +6,7 @@ import type {
     GetOrdersParams,
     GetOrdersResponse,
     GetOrderByIdResponse,
-    OrderDetailResponseData,
+
 } from '@/types/Order/order'
 
 // Tạo đơn hàng (POST /api/v1/orders)

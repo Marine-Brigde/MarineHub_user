@@ -40,13 +40,13 @@ export const getSupplierProductByIdApi = async (id: string) => {
 // 📦 Tạo mới Product (POST /api/v1/products - multipart/form-data)
 export const createSupplierProductApi = async (data: CreateProductRequest) => {
     const formData = new FormData()
-    
+
     formData.append('Name', data.name)
     formData.append('Description', data.description)
     formData.append('CategoryId', data.categoryId)
     formData.append('Price', data.price.toString())
     formData.append('IsHasVariant', data.isHasVariant.toString())
-    
+
     // Append ProductVariants as array of objects for .NET model binding
     // Format: ProductVariants[0].name, ProductVariants[0].price, ProductVariants[1].name, etc.
     // Note: .NET uses lowercase property names for JSON binding
@@ -56,7 +56,7 @@ export const createSupplierProductApi = async (data: CreateProductRequest) => {
             formData.append(`ProductVariants[${index}].price`, variant.price.toString())
         })
     }
-    
+
     // Append ProductImages (multiple files)
     if (data.productImages && data.productImages.length > 0) {
         data.productImages.forEach((image) => {
@@ -91,16 +91,16 @@ export const createSupplierProductApi = async (data: CreateProductRequest) => {
     return response.data
 }
 
-// 📦 Cập nhật Product (PUT /api/v1/products/{id} - multipart/form-data)
+// 📦 Cập nhật Product (PATCH /api/v1/products/{id} - multipart/form-data)
 export const updateSupplierProductApi = async (id: string, data: UpdateProductRequest) => {
     const formData = new FormData()
-    
+
     if (data.name) formData.append('Name', data.name)
     if (data.description) formData.append('Description', data.description)
     if (data.categoryId) formData.append('CategoryId', data.categoryId)
     if (data.price !== undefined) formData.append('Price', data.price.toString())
     if (data.isHasVariant !== undefined) formData.append('IsHasVariant', data.isHasVariant.toString())
-    
+
     // Append ProductVariants if provided (for .NET model binding)
     // Format: ProductVariants[0].name, ProductVariants[0].price, ProductVariants[1].name, etc.
     // Note: .NET uses lowercase property names for JSON binding
@@ -110,7 +110,7 @@ export const updateSupplierProductApi = async (id: string, data: UpdateProductRe
             formData.append(`ProductVariants[${index}].price`, variant.price.toString())
         })
     }
-    
+
     // Append ProductImages if provided (multiple files)
     if (data.productImages && data.productImages.length > 0) {
         data.productImages.forEach((image) => {
@@ -118,7 +118,7 @@ export const updateSupplierProductApi = async (id: string, data: UpdateProductRe
         })
     }
 
-    const response = await axiosClient.put<BaseResponse<string>>(`/v1/products/${id}`, formData, {
+    const response = await axiosClient.patch<BaseResponse<string>>(`/v1/products/${id}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
     })
 

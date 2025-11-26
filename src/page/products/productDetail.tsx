@@ -4,13 +4,18 @@ import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import Header from "@/components/common/header"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Loader2, ArrowLeft, Package, ShoppingCart } from "lucide-react"
+import { Loader2, ArrowLeft, Package } from "lucide-react"
 import { getProductByIdApi } from "@/api/Product/productApi"
-import orderModel from '@/models/orderModel'
+// orderModel removed from this page — no cart flow here
 import { createOrderApi } from '@/api/Order/orderApi'
+import { createPaymentApi } from '@/api/payment/paymentApi'
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from '@/components/ui/alert-dialog'
+import type { CreateOrderRequest } from '@/types/Order/order'
+
 import type { Product } from "@/types/Product/product"
 
 export default function ProductDetailPage() {
@@ -23,67 +28,70 @@ export default function ProductDetailPage() {
     const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null)
     const [selectedVariantName, setSelectedVariantName] = useState<string | undefined>(undefined)
     const [quantity, setQuantity] = useState<number>(1)
-    const [shipIdInput, setShipIdInput] = useState<string>(orderModel.getShipId() || "")
+    // shipId removed — orders created without shipId from this page
     const [isPlacingOrder, setIsPlacingOrder] = useState(false)
+    const [showOrderModal, setShowOrderModal] = useState(false)
+    const [orderPreview, setOrderPreview] = useState<CreateOrderRequest | null>(null)
+    const [paymentAddress, setPaymentAddress] = useState<string>('')
 
-    const handleAddToCart = () => {
-        if (!selectedVariantId) {
-            window.alert('Vui lòng chọn biến thể trước khi thêm vào giỏ')
-            return
-        }
-
-        orderModel.addItem({
-            productVariantId: selectedVariantId,
-            quantity,
-            productOptionName: selectedVariantName,
-        })
-
-        window.alert('Đã thêm vào giỏ hàng')
-    }
+    // No add-to-cart on this page; direct buy only
 
     const handleBuyNow = async () => {
-        // prepare shipId
-        const shipId = shipIdInput || orderModel.getShipId()
-        if (!shipId) {
-            window.alert('Vui lòng nhập `shipId` trước khi mua (hoặc lưu địa chỉ trong giỏ)')
+        // Open modal for confirmation instead of immediate order creation
+        // Build payload from the currently selected variant only
+        if (!selectedVariantId) {
+            window.alert('Vui lòng chọn biến thể trước khi đặt hàng')
             return
         }
-
-        // build payload
-        let payload = orderModel.buildCreateOrderRequest()
-        if (!payload || payload.orderItems.length === 0) {
-            if (!selectedVariantId) {
-                window.alert('Chưa có sản phẩm để đặt hàng')
-                return
-            }
-            payload = {
-                shipId,
-                orderItems: [
-                    {
-                        productVariantId: selectedVariantId,
-                        quantity,
-                        productOptionName: selectedVariantName,
-                    },
-                ],
-            }
-        } else {
-            // ensure shipId is set
-            payload.shipId = shipId
+        const payload: CreateOrderRequest = {
+            orderItems: [
+                {
+                    productVariantId: selectedVariantId,
+                    quantity,
+                    productOptionName: selectedVariantName,
+                },
+            ],
         }
 
+        // store preview and show modal
+        setOrderPreview(payload)
+        setShowOrderModal(true)
+    }
+
+    const confirmCreateOrder = async () => {
+        if (!orderPreview) return
         try {
             setIsPlacingOrder(true)
-            // persist shipId in the model
-            orderModel.setShipId(shipId)
-            const res = await createOrderApi(payload)
+            // create order directly from preview
+            const res = await createOrderApi(orderPreview)
             if (res && (res.status === 201 || res.status === 200)) {
-                window.alert('Tạo đơn hàng thành công (ID: ' + (res.data?.id || '') + ')')
-                orderModel.clear()
-                // reset UI selections
+                const orderId = res.data?.id
+                // call payment API (best-effort) — require address
+                try {
+                    if (!paymentAddress || !paymentAddress.trim()) {
+                        window.alert('Vui lòng nhập địa chỉ giao hàng trước khi thanh toán')
+                        setIsPlacingOrder(false)
+                        return
+                    }
+                    const payRes = await createPaymentApi({ id: orderId ?? '', type: 'Supplier', address: paymentAddress })
+                    // If API returns a checkout URL, navigate there
+                    const checkoutUrl = payRes?.data?.checkoutUrl || payRes?.data?.checkout_url || payRes?.data?.checkoutUrl
+                    if (checkoutUrl) {
+                        // open in new tab to preserve app state
+                        window.open(checkoutUrl, '_blank')
+                        // optionally navigate user within app or show success message
+                    }
+                } catch (payErr) {
+                    console.error('Payment API error', payErr)
+                }
+
+                window.alert('Tạo đơn hàng thành công (ID: ' + (orderId || '') + ')')
+                // no cart to clear on this page
                 setSelectedVariantId(null)
                 setSelectedVariantName(undefined)
                 setQuantity(1)
-                setShipIdInput('')
+                // shipId removed
+                setShowOrderModal(false)
             } else {
                 window.alert('Tạo đơn hàng thất bại: ' + (res?.message || 'Không xác định'))
             }
@@ -273,21 +281,7 @@ export default function ProductDetailPage() {
                                                             />
                                                         </div>
 
-                                                        <div>
-                                                            <label className="text-sm text-muted-foreground">ShipId (dùng để tạo đơn)</label>
-                                                            <input
-                                                                type="text"
-                                                                value={shipIdInput}
-                                                                onChange={(e) => setShipIdInput(e.target.value)}
-                                                                placeholder="Nhập shipId hoặc để trống"
-                                                                className="mt-1 w-full border rounded px-2 py-1"
-                                                            />
-                                                        </div>
-
                                                         <div className="flex flex-col gap-2">
-                                                            <Button onClick={handleAddToCart} className="w-full">
-                                                                <ShoppingCart className="mr-2 h-4 w-4" /> Thêm vào giỏ
-                                                            </Button>
                                                             <Button variant="outline" onClick={handleBuyNow} className="w-full" disabled={isPlacingOrder}>
                                                                 {isPlacingOrder ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Package className="mr-2 h-4 w-4" />} Mua ngay
                                                             </Button>
@@ -301,6 +295,34 @@ export default function ProductDetailPage() {
                             </div>
                         </div>
                     </div>
+                )}
+                {showOrderModal && orderPreview && (
+                    <AlertDialog open={showOrderModal} onOpenChange={(o) => setShowOrderModal(o)}>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Xác nhận đơn hàng</AlertDialogTitle>
+                                <AlertDialogDescription>Kiểm tra thông tin đơn hàng trước khi xác nhận.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-sm text-muted-foreground">Địa chỉ giao hàng (bắt buộc)</label>
+                                    <Input
+                                        value={paymentAddress}
+                                        onChange={(e) => setPaymentAddress(e.target.value)}
+                                        placeholder="Nhập địa chỉ giao hàng"
+                                    />
+                                </div>
+                                <div className="text-sm">Số lượng mục: <span className="font-medium">{orderPreview.orderItems.length}</span></div>
+                                <div className="text-sm">Tổng số lượng: <span className="font-medium">{orderPreview.orderItems.reduce((s, it) => s + (it.quantity || 0), 0)}</span></div>
+                            </div>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                <AlertDialogAction onClick={confirmCreateOrder}>
+                                    {isPlacingOrder ? 'Đang xử lý...' : 'Xác nhận và thanh toán'}
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 )}
             </div>
         </div>

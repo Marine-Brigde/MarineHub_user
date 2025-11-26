@@ -9,6 +9,8 @@ export interface SupplierRequest {
     address: string;
     phoneNumber: string;
     avatar?: File | null;
+    bankName?: string | null;
+    bankNo?: string | null;
     otp: string;
 }
 
@@ -24,6 +26,8 @@ export interface SupplierItem {
     address: string;
     phoneNumber: string;
     avatarUrl: string;
+    bankName?: string | null;
+    bankNo?: string | null;
     createdDate: string;
     lastModifiedDate: string;
 }

@@ -36,6 +36,12 @@ export const getOrderByIdApi = async (id: string) => {
     return response.data
 }
 
+// Cập nhật đơn hàng (PUT /api/v1/orders/{id}) - cập nhật trạng thái / số lượng
+export const updateOrderApi = async (id: string, payload: any) => {
+    const response = await axiosClient.put(`/v1/orders/${id}`, payload)
+    return response.data
+}
+
 export default {
     createOrderApi,
     getOrdersApi,

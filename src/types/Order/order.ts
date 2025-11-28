@@ -16,6 +16,8 @@ export interface OrderResponseData {
     status: string
 }
 
+export type OrderStatus = 'Pending' | 'Approved' | 'Delivered' | 'Completed' | 'Rejected'
+
 export interface OrderItemResponse {
     productVariantId?: string
     productVariantName?: string
@@ -72,5 +74,16 @@ export interface GetOrdersResponse {
 export interface GetOrderByIdResponse {
     status: number
     message: string
-    data: OrderResponseData
+    data: OrderDetailResponseData
+}
+
+export interface UpdateOrderRequest {
+    status: OrderStatus
+    orderItems?: Array<{ id: string; quantity: number }>
+}
+
+export interface UpdateOrderResponse {
+    status: number
+    message: string
+    data: string | null
 }

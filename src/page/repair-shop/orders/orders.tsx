@@ -79,6 +79,34 @@ export default function RepairShopOrders() {
         }
     }
 
+    // status update helpers (same rules)
+    const allowedStatusesFor = (current?: string) => {
+        const c = (current || '').toLowerCase()
+        if (c === 'pending') return ['Pending', 'Approved', 'Delivered', 'Completed', 'Rejected']
+        if (c === 'approved') return ['Approved', 'Delivered', 'Completed']
+        if (c === 'delivered') return ['Delivered', 'Completed']
+        if (c === 'completed') return ['Completed']
+        if (c === 'rejected') return ['Rejected']
+        return ['Pending', 'Approved', 'Delivered', 'Completed', 'Rejected']
+    }
+
+    const updateOrderStatus = async (newStatus: string) => {
+        if (!selectedOrder) return
+        setDetailLoading(true)
+        try {
+            await (await import('@/api/Order/orderApi')).updateOrderApi(selectedOrder.id, { status: newStatus })
+            // refresh order list and selected order
+            loadOrders(currentPage)
+            const res = await (await import('@/api/Order/orderApi')).getOrderByIdApi(selectedOrder.id)
+            if (res && res.data) setSelectedOrder(res.data as OrderDetailResponseData)
+        } catch (err) {
+            console.error('updateOrderApi', err)
+            setDetailError('Không thể cập nhật trạng thái')
+        } finally {
+            setDetailLoading(false)
+        }
+    }
+
     const handleCloseDetail = () => {
         setDialogOpen(false)
         setSelectedOrder(null)
@@ -313,13 +341,45 @@ export default function RepairShopOrders() {
                                         <div className="font-medium">Mã (code)</div>
                                         <div>{selectedOrder.orderCode || '-'}</div>
                                     </div>
-                                    <div className="flex justify-between items-center gap-2">
-                                        <div className="font-medium">Trạng thái</div>
-                                        <div>{getStatusBadge(selectedOrder.status)}</div>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <div className="font-medium">Tổng tiền</div>
-                                        <div>{selectedOrder.totalAmount?.toLocaleString() || 0} đ</div>
+                                    <div className="flex flex-col gap-3">
+                                        <div className="flex items-center justify-between">
+                                            <div className="font-medium">Trạng thái</div>
+                                            <div>{getStatusBadge(selectedOrder.status)}</div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            <select
+                                                defaultValue={selectedOrder.status}
+                                                onChange={(e) => updateOrderStatus(e.target.value)}
+                                                className="border rounded px-2 py-1 text-sm"
+                                            >
+                                                {allowedStatusesFor(selectedOrder.status).map((s) => (
+                                                    <option key={s} value={s}>{STATUS_LABELS[s.toLowerCase()] || s}</option>
+                                                ))}
+                                            </select>
+                                            <div className="text-sm text-muted-foreground">Chọn trạng thái để cập nhật</div>
+                                        </div>
+
+                                        <div className="flex justify-between">
+                                            <div className="font-medium">Tổng tiền</div>
+                                            <div>{selectedOrder.totalAmount?.toLocaleString() || 0} đ</div>
+                                        </div>
+
+                                        <div>
+                                            <div className="font-medium mb-2">Sản phẩm</div>
+                                            {selectedOrder.items && selectedOrder.items.length > 0 ? (
+                                                <div className="space-y-2">
+                                                    {selectedOrder.items.map((it, idx) => (
+                                                        <div key={idx} className="flex justify-between">
+                                                            <div className="truncate">{it.productVariantName || it.productVariantId || it.productOptionName || 'Sản phẩm'}</div>
+                                                            <div className="text-sm">{(it.quantity || 0)} x {it.price ? `${it.price.toLocaleString()} đ` : '-'}</div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="text-sm text-muted-foreground">Không có sản phẩm chi tiết.</div>
+                                            )}
+                                        </div>
                                     </div>
 
 

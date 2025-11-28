@@ -14,7 +14,7 @@ import { DockManagement } from '@/components/repair-shop/dock-management';
 import RepairShopOrdersPage from '@/page/repair-shop/orders/orders';
 import CategoryManagement from '@/components/supplier/category-management';
 import BoatyardProfilePage from '@/page/repair-shop/profile/profile';
-import RepairShopOrderDetailPage from '@/page/repair-shop/orders/orderDetail';
+
 import SupplierProfilePage from '@/page/supplier/profile/profile';
 import SupplierComplaintsPage from '@/page/supplier/complaints/complaints';
 import SupplierOrdersPage from '@/page/supplier/orders/orders';
@@ -70,7 +70,7 @@ const router = createBrowserRouter([
             { path: 'orders', element: <RepairShopOrdersPage /> },
             { path: 'bookings', element: <RepairShopBookingsPage /> },
             { path: 'bookings/:id', element: <RepairShopBookingDetailPage /> },
-            { path: 'orders/:id', element: <RepairShopOrderDetailPage /> },
+
             { path: 'profile', element: <BoatyardProfilePage /> },
             { path: 'complaints', element: <BoatyardComplaintsPage /> },
             { path: 'success', element: <PaymentSuccessPage /> },

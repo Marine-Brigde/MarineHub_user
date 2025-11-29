@@ -19,6 +19,7 @@ import PublicProductsPage from '@/page/products/products';
 import ProductDetailPage from '@/page/products/productDetail';
 import PublicSuppliersPage from '@/page/suppliers/suppliers';
 import SupplierDashboardPage from '@/page/supplier/dashboard/dasboard';
+import SupplierReviewsPage from '@/page/supplier/reviews/reviews';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 
@@ -148,6 +149,16 @@ const router = createBrowserRouter([
             <ProtectedRoute allowedRole="Supplier">
                 <SupplierLayout>
                     <SupplierComplaintsPage />
+                </SupplierLayout>
+            </ProtectedRoute>
+        )
+    },
+    {
+        path: '/supplier/reviews',
+        element: (
+            <ProtectedRoute allowedRole="Supplier">
+                <SupplierLayout>
+                    <SupplierReviewsPage />
                 </SupplierLayout>
             </ProtectedRoute>
         )

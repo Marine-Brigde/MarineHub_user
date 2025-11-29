@@ -11,8 +11,8 @@ class OrderModel {
         this.load()
     }
 
-    setShipId(id: string) {
-        this.shipId = id
+    setShipId(id?: string | null) {
+        this.shipId = id ?? null
         this.save()
     }
 
@@ -56,16 +56,17 @@ class OrderModel {
     }
 
     buildCreateOrderRequest(): CreateOrderRequest | null {
-        if (!this.shipId || this.orderItems.length === 0) return null
-        return {
-            shipId: this.shipId,
-            orderItems: this.orderItems.map(i => ({ ...i }))
+        const validItems = this.orderItems.filter(i => typeof i.quantity === 'number' && i.quantity > 0)
+        if (validItems.length === 0) return null
+        const req: CreateOrderRequest = {
+            orderItems: validItems.map(i => ({ ...i })),
         }
+        return req
     }
 
     private save() {
         try {
-            const payload = { shipId: this.shipId, orderItems: this.orderItems }
+            const payload = { orderItems: this.orderItems }
             localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
         } catch (e) {
             // ignore
@@ -77,7 +78,6 @@ class OrderModel {
             const raw = localStorage.getItem(STORAGE_KEY)
             if (!raw) return
             const parsed = JSON.parse(raw)
-            this.shipId = parsed?.shipId ?? null
             this.orderItems = Array.isArray(parsed?.orderItems) ? parsed.orderItems : []
         } catch (e) {
             // ignore

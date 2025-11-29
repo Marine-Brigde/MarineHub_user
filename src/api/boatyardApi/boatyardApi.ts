@@ -17,6 +17,8 @@ export const createBoatyardApi = async (
     formData.append("Password", boatyardData.password);
     formData.append("Address", boatyardData.address);
     formData.append("PhoneNumber", boatyardData.phoneNumber);
+    if (boatyardData.bankName) formData.append("BankName", boatyardData.bankName);
+    if (boatyardData.bankNo) formData.append("BankNo", boatyardData.bankNo);
     formData.append("Otp", boatyardData.otp);
 
     if (boatyardData.avatar) {
@@ -76,6 +78,8 @@ export const updateBoatyardApi = async (
     if (data.latitude) formData.append("Latitude", data.latitude);
     if (data.fullName) formData.append("FullName", data.fullName);
     if (data.phoneNumber) formData.append("PhoneNumber", data.phoneNumber);
+    if ((data as any).bankName) formData.append("BankName", (data as any).bankName);
+    if ((data as any).bankNo) formData.append("BankNo", (data as any).bankNo);
     if (data.password) formData.append("Password", data.password);
     if (data.address) formData.append("Address", data.address);
     if (data.personalIntroduction !== undefined) formData.append("PersonalIntroduction", data.personalIntroduction);

@@ -220,6 +220,7 @@ export function MapComponent({ onLocationSelect }: MapComponentProps) {
                     {suggestions.map((suggestion) => (
                         <Button
                             key={suggestion.place_id}
+                            type="button"
                             variant="ghost"
                             className="w-full text-left justify-start"
                             onClick={() => {

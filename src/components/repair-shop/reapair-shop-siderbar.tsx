@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom"
-import { Anchor, BarChart3, Wrench, Calendar, Ship, MapPin, FileText, Settings, LogOut, User, AlertCircle } from "lucide-react"
+import { Anchor, BarChart3, Wrench, Calendar, Ship, MapPin, FileText, Settings, LogOut, User, AlertCircle, ShoppingCart } from "lucide-react"
 
 import {
     Sidebar,
@@ -27,7 +27,7 @@ const menuItems = [
     },
     {
         title: "Lịch hẹn",
-        url: "/repair-shop/appointments",
+        url: "/repair-shop/bookings",
         icon: Calendar,
     },
     {
@@ -39,6 +39,11 @@ const menuItems = [
         title: "Bến đậu tàu",
         url: "/repair-shop/dock",
         icon: MapPin,
+    },
+    {
+        title: "Đơn hàng",
+        url: "/repair-shop/orders",
+        icon: ShoppingCart,
     },
     {
         title: "Báo cáo tiến độ",

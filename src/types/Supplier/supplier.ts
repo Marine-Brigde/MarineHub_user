@@ -12,6 +12,8 @@ export interface Supplier {
     address: string
     phoneNumber: string
     avatarUrl: string | null
+    bankName?: string | null
+    bankNo?: string | null
     createdDate: string
     lastModifiedDate: string | null
 }

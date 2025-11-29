@@ -21,6 +21,13 @@ export const createSupplierApi = async (
         formData.append("Avatar", supplierData.avatar);
     }
 
+    if (supplierData.bankName) {
+        formData.append("BankName", supplierData.bankName);
+    }
+    if (supplierData.bankNo) {
+        formData.append("BankNo", supplierData.bankNo);
+    }
+
     const response = await axiosClient.post<ApiResponse<string>>("/v1/suppliers", formData, {
         headers: { "Content-Type": "multipart/form-data" },
     });
@@ -48,6 +55,8 @@ export const updateSupplierApi = async (
     if (data.address) formData.append("Address", data.address);
     if (data.personalIntroduction !== undefined) formData.append("PersonalIntroduction", data.personalIntroduction);
     if (data.avatar) formData.append("Avatar", data.avatar);
+    if ((data as any).bankName) formData.append("BankName", (data as any).bankName);
+    if ((data as any).bankNo) formData.append("BankNo", (data as any).bankNo);
 
     const response = await axiosClient.patch<ApiResponse<string>>("/v1/suppliers", formData, {
         headers: { "Content-Type": "multipart/form-data" },

@@ -27,6 +27,17 @@ const STEPS = [
     { id: 3, title: "Quản lý Dock", description: "Cấu hình bến đỗ" },
 ]
 
+const BANKS = [
+    "Vietcombank",
+    "VietinBank",
+    "BIDV",
+    "Techcombank",
+    "ACB",
+    "MB Bank",
+    "Agribank",
+    "Sacombank",
+]
+
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null
 
 const extractServerMessage = (body: unknown): string => {
@@ -86,6 +97,8 @@ export function BoatyardRegisterForm() {
         latitude: "",
         longitude: "",
         avatar: undefined,
+        bankName: undefined,
+        bankNo: undefined,
     })
 
     const [dockSlots, setDockSlots] = useState<DockSlot[]>([])
@@ -135,6 +148,8 @@ export function BoatyardRegisterForm() {
     }
 
     const handleSendOTP = async () => {
+        // eslint-disable-next-line no-console
+        console.debug('[Register] handleSendOTP, email=', formData.email)
         setOtpLoading(true)
         setError("")
         setSuccess("")
@@ -167,10 +182,14 @@ export function BoatyardRegisterForm() {
     }
 
     const addDockSlot = () => {
+        // eslint-disable-next-line no-console
+        console.debug('[Register] addDockSlot')
         setDockSlots((prev) => [...prev, { name: "", assignedFrom: "", assignedUntil: "" }])
     }
 
     const removeDockSlot = (index: number) => {
+        // eslint-disable-next-line no-console
+        console.debug('[Register] removeDockSlot', index)
         setDockSlots((prev) => prev.filter((_, i) => i !== index))
     }
 
@@ -257,6 +276,8 @@ export function BoatyardRegisterForm() {
     }
 
     const handleNext = () => {
+        // eslint-disable-next-line no-console
+        console.debug('[Register] handleNext currentStep=', currentStep)
         if (validateStep(currentStep)) {
             setCurrentStep((prev) => Math.min(prev + 1, STEPS.length))
         }
@@ -300,6 +321,29 @@ export function BoatyardRegisterForm() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        // If available, inspect the element that triggered the submit (submitter).
+        // Some browsers expose it on the native SubmitEvent as `submitter`.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const native = (e as any).nativeEvent as SubmitEvent | undefined
+        const submitter = native?.submitter as HTMLElement | undefined
+        // eslint-disable-next-line no-console
+        console.debug('[Register] submitter=', submitter?.tagName, submitter?.id)
+        // Protect: only allow submit on final step
+        if (submitter && submitter.id && submitter.id !== 'register-final-submit') {
+            // eslint-disable-next-line no-console
+            console.debug('[Register] submit ignored: submitter is not final submit button', submitter.id)
+            setError('Hành động bị hủy: không phải nút hoàn tất đăng ký')
+            return
+        }
+
+        if (currentStep !== STEPS.length) {
+            // eslint-disable-next-line no-console
+            console.debug('[Register] handleSubmit ignored because not final step', currentStep)
+            setError('Vui lòng hoàn tất tất cả các bước trước khi gửi')
+            return
+        }
+        // eslint-disable-next-line no-console
+        console.debug('[Register] handleSubmit triggered', { formData, dockSlots })
 
         if (!validateStep(3)) {
             return
@@ -317,6 +361,33 @@ export function BoatyardRegisterForm() {
             }, 2000)
         } else {
             setError(result.error || "Có lỗi xảy ra")
+        }
+        setIsLoading(false)
+    }
+
+    // Direct final submit handler: invoked from the final button's onClick to avoid accidental form submits
+    const submitFinal = async () => {
+        // eslint-disable-next-line no-console
+        console.debug('[Register] submitFinal invoked')
+        if (currentStep !== STEPS.length) {
+            setError('Vui lòng hoàn tất tất cả các bước trước khi gửi')
+            return
+        }
+
+        if (!validateStep(3)) return
+
+        setIsLoading(true)
+        setError('')
+        setSuccess('')
+
+        const result = await registerBoatyard(otp)
+        if (result.success) {
+            setSuccess('Đăng ký xưởng thành công! Đang chuyển hướng...')
+            setTimeout(() => {
+                navigate('/login')
+            }, 2000)
+        } else {
+            setError(result.error || 'Có lỗi xảy ra')
         }
         setIsLoading(false)
     }
@@ -374,7 +445,31 @@ export function BoatyardRegisterForm() {
                     <CardDescription>{STEPS[currentStep - 1].description}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form
+                        onSubmit={handleSubmit}
+                        onClick={(e) => {
+                            // eslint-disable-next-line no-console
+                            console.debug('[Register] form click target=', (e.target as HTMLElement)?.tagName)
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                const target = e.target as HTMLElement
+                                // eslint-disable-next-line no-console
+                                console.debug('[Register] form keydown Enter target=', target?.tagName, 'type=', (target as HTMLElement)?.getAttribute?.('type'))
+
+                                // Allow Enter only when the focused element is the actual submit button.
+                                const isSubmitButton = target?.tagName === 'BUTTON' && (target as HTMLButtonElement).type === 'submit'
+                                const isTextarea = target?.tagName === 'TEXTAREA'
+
+                                if (!isSubmitButton && !isTextarea) {
+                                    e.preventDefault()
+                                    // eslint-disable-next-line no-console
+                                    console.debug('[Register] prevented Enter submit (not submit button)')
+                                }
+                            }
+                        }}
+                        className="space-y-6"
+                    >
                         {/* Step 1: Basic Information */}
                         {currentStep === 1 && (
                             <div className="space-y-4">
@@ -563,6 +658,32 @@ export function BoatyardRegisterForm() {
                                         />
                                     </div>
                                 </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="bankName">Ngân hàng</Label>
+                                        <select
+                                            id="bankName"
+                                            value={formData.bankName ?? ""}
+                                            onChange={(e) => setFormData((p) => ({ ...p, bankName: e.target.value }))}
+                                            className="mt-1 w-full border rounded px-2 py-2"
+                                        >
+                                            <option value="">-- Chọn ngân hàng (nếu có) --</option>
+                                            {BANKS.map((b) => (
+                                                <option key={b} value={b}>{b}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="bankNo">Số tài khoản</Label>
+                                        <Input
+                                            id="bankNo"
+                                            placeholder="Số tài khoản (nếu có)"
+                                            value={formData.bankNo ?? ""}
+                                            onChange={(e) => setFormData((p) => ({ ...p, bankNo: e.target.value }))}
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         )}
 
@@ -574,7 +695,7 @@ export function BoatyardRegisterForm() {
                                         <h3 className="text-lg font-semibold">Quản lý Dock Slots</h3>
                                         <p className="text-sm text-muted-foreground">Thêm các bến đỗ và thời gian sử dụng (tùy chọn)</p>
                                     </div>
-                                    <Button type="button" variant="outline" onClick={addDockSlot}>
+                                    <Button type="button" variant="outline" onClick={(e) => { e.preventDefault(); addDockSlot(); }}>
                                         + Thêm Dock
                                     </Button>
                                 </div>
@@ -680,7 +801,7 @@ export function BoatyardRegisterForm() {
                                     <ChevronRight className="h-4 w-4 ml-2" />
                                 </Button>
                             ) : (
-                                <Button type="submit" disabled={isLoading}>
+                                <Button id="register-final-submit" type="button" onClick={submitFinal} disabled={isLoading}>
                                     {isLoading ? "Đang xử lý..." : "Hoàn tất đăng ký"}
                                 </Button>
                             )}

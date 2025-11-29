@@ -15,6 +15,17 @@ import { createSupplierApi } from "@/api/supplierApi"
 import { authApi } from "@/api/authApi"
 import { MapComponent } from "../map/MapComponent"
 
+const BANKS = [
+    "Vietcombank",
+    "VietinBank",
+    "BIDV",
+    "Techcombank",
+    "ACB",
+    "MB Bank",
+    "Agribank",
+    "Sacombank",
+]
+
 type SupplierFormData = Omit<SupplierRequest, "otp">
 
 export function SupplierRegisterForm() {
@@ -38,6 +49,8 @@ export function SupplierRegisterForm() {
         latitude: "",
         longitude: "",
         avatar: undefined,
+        bankName: "",
+        bankNo: "",
     })
 
     const handleLocationSelect = (lat: string, lng: string, address: string) => {
@@ -413,6 +426,33 @@ export function SupplierRegisterForm() {
                             value={formData.longitude}
                             onChange={(e) => setFormData((prev) => ({ ...prev, longitude: e.target.value }))}
                             required
+                        />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="bankName">Ngân hàng (tùy chọn)</Label>
+                        <select
+                            id="bankName"
+                            value={formData.bankName ?? ""}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, bankName: e.target.value }))}
+                            className="mt-1 w-full border rounded px-2 py-2"
+                        >
+                            <option value="">-- Chọn ngân hàng (nếu có) --</option>
+                            {BANKS.map((b) => (
+                                <option key={b} value={b}>{b}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="bankNo">Số tài khoản (tùy chọn)</Label>
+                        <Input
+                            id="bankNo"
+                            placeholder="Số tài khoản"
+                            value={formData.bankNo ?? ""}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, bankNo: e.target.value }))}
                         />
                     </div>
                 </div>

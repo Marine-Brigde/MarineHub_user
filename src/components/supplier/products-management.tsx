@@ -31,6 +31,7 @@ import { Switch } from "@/components/ui/switch"
 import { Plus, Edit, Search, Loader2, Trash2, X, ChevronLeft, ChevronRight } from "lucide-react"
 
 import { getSupplierProductsApi, createSupplierProductApi, updateSupplierProductApi, deleteSupplierProductApi } from "@/api/Product/supplierProductApi"
+import { getProductByIdApi } from '@/api/Product/productApi'
 import { getCategoriesApi } from "@/api/Category/categoryApi"
 import type { Product, CreateProductRequest, UpdateProductRequest, ProductVariant } from "@/types/Product/supplierProduct"
 import type { Category } from "@/types/Category/category"
@@ -48,11 +49,11 @@ const extractError = (err: unknown) => {
             const status = error.response.status
             const statusText = error.response.statusText
             const data = error.response.data
-            
+
             if (status === 404) {
                 return `Endpoint không tồn tại (404). Kiểm tra lại URL: ${error.config?.url || 'unknown'}`
             }
-            
+
             if (data?.message) return data.message
             if (data?.data) return String(data.data)
             return `Lỗi ${status}: ${statusText || 'Unknown error'}`
@@ -70,7 +71,7 @@ export default function ProductsManagement() {
     const [loading, setLoading] = useState(false)
     const [categories, setCategories] = useState<Category[]>([])
     const [categoriesLoading, setCategoriesLoading] = useState(false)
-    
+
     const [page, setPage] = useState(1)
     const [size] = useState(10)
     const [total, setTotal] = useState(0)
@@ -99,8 +100,8 @@ export default function ProductsManagement() {
 
     const fetchCategories = () => {
         setCategoriesLoading(true)
-        getCategoriesApi({ 
-            page: 1, 
+        getCategoriesApi({
+            page: 1,
             size: 100,
             sortBy: 'name',
             isAsc: true
@@ -117,9 +118,9 @@ export default function ProductsManagement() {
 
     const fetchProducts = () => {
         setLoading(true)
-        getSupplierProductsApi({ 
-            page, 
-            size, 
+        getSupplierProductsApi({
+            page,
+            size,
             name: searchTerm || undefined,
             sortBy: 'createdDate',
             isAsc: false
@@ -169,18 +170,43 @@ export default function ProductsManagement() {
         setShowDialog(true)
     }
 
-    const openEdit = (p: Product) => {
+    const openEdit = async (p: Product) => {
         setEditProduct(p)
         setName(p.name)
         setDescription(p.description ?? "")
         setCategoryId(p.categoryId)
-        setPrice("") // Price sẽ cần lấy từ API detail nếu có
         setIsHasVariant(p.isHasVariant)
-        setProductVariants([]) // Variants sẽ cần lấy từ API detail nếu có
         setProductImages([])
         cleanupImagePreviews()
         setImagePreviews(p.imageUrl ? [p.imageUrl] : [])
         setFormError("")
+
+        // Fetch product detail to populate price and variants
+        try {
+            const res = await getProductByIdApi(p.id)
+            const detail = (res as any)?.data
+            if (detail) {
+                // If product has variants, map them to supplier ProductVariant type
+                if (Array.isArray(detail.productVariants) && detail.productVariants.length > 0 && p.isHasVariant) {
+                    const mapped = detail.productVariants.map((v: any) => ({ name: v.name || '', price: Number(v.price || 0) }))
+                    setProductVariants(mapped)
+                    setPrice('')
+                } else {
+                    // No variants: use product-level price if available
+                    const priceVal = detail.productVariants && detail.productVariants.length > 0 ? detail.productVariants[0].price : detail.price ?? (detail.productVariants && detail.productVariants[0]?.price)
+                    setPrice(priceVal !== undefined ? String(priceVal) : '')
+                    setProductVariants([])
+                }
+            } else {
+                setPrice("")
+                setProductVariants([])
+            }
+        } catch (err) {
+            console.error('Failed to load product detail for edit', err)
+            setPrice("")
+            setProductVariants([])
+        }
+
         setShowDialog(true)
     }
 

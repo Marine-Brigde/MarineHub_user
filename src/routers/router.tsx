@@ -5,15 +5,19 @@ import SupplierRegisterPage from '@/page/auth/supplier-register/supplier-registe
 import HomePage from '@/page/home/home';
 import RepairShopDashboardPage from '@/page/repair-shop/dashboard/dasboard';
 import RepairShopLayout from '@/page/repair-shop/layout';
+import { Outlet } from 'react-router-dom';
 import { default as SupplierProductsPage } from '@/page/supplier/products/products';
 import { createBrowserRouter } from 'react-router-dom';
 import SupplierLayout from '@/page/supplier/layout';
 import ServicesPage from '@/page/repair-shop/services/services';
 import { DockManagement } from '@/components/repair-shop/dock-management';
+import RepairShopOrdersPage from '@/page/repair-shop/orders/orders';
 import CategoryManagement from '@/components/supplier/category-management';
 import BoatyardProfilePage from '@/page/repair-shop/profile/profile';
+
 import SupplierProfilePage from '@/page/supplier/profile/profile';
 import SupplierComplaintsPage from '@/page/supplier/complaints/complaints';
+import SupplierOrdersPage from '@/page/supplier/orders/orders';
 import BoatyardComplaintsPage from '@/page/repair-shop/complaints/complaints';
 import PublicProductsPage from '@/page/products/products';
 import ProductDetailPage from '@/page/products/productDetail';
@@ -21,6 +25,9 @@ import PublicSuppliersPage from '@/page/suppliers/suppliers';
 import SupplierDashboardPage from '@/page/supplier/dashboard/dasboard';
 import SupplierReviewsPage from '@/page/supplier/reviews/reviews';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import PaymentSuccessPage from '@/page/payment/success';
+import RepairShopBookingsPage from '@/page/repair-shop/bookings/bookings';
+import RepairShopBookingDetailPage from '@/page/repair-shop/bookings/bookingDetail';
 
 
 const router = createBrowserRouter([
@@ -49,54 +56,26 @@ const router = createBrowserRouter([
         element: <SupplierRegisterPage />,
     },
     {
-        path: '/repair-shop/dashboard',
+        path: '/repair-shop',
         element: (
             <ProtectedRoute allowedRole="Boatyard">
                 <RepairShopLayout>
-                    <RepairShopDashboardPage />
+                    <Outlet />
                 </RepairShopLayout>
             </ProtectedRoute>
         ),
-    },
-    {
-        path: '/repair-shop/services',
-        element: (
-            <ProtectedRoute allowedRole="Boatyard">
-                <RepairShopLayout>
-                    <ServicesPage />
-                </RepairShopLayout>
-            </ProtectedRoute>
-        ),
-    },
-    {
-        path: '/repair-shop/dock',
-        element: (
-            <ProtectedRoute allowedRole="Boatyard">
-                <RepairShopLayout>
-                    <DockManagement />
-                </RepairShopLayout>
-            </ProtectedRoute>
-        )
-    },
-    {
-        path: '/repair-shop/profile',
-        element: (
-            <ProtectedRoute allowedRole="Boatyard">
-                <RepairShopLayout>
-                    <BoatyardProfilePage />
-                </RepairShopLayout>
-            </ProtectedRoute>
-        )
-    },
-    {
-        path: '/repair-shop/complaints',
-        element: (
-            <ProtectedRoute allowedRole="Boatyard">
-                <RepairShopLayout>
-                    <BoatyardComplaintsPage />
-                </RepairShopLayout>
-            </ProtectedRoute>
-        )
+        children: [
+            { path: 'dashboard', element: <RepairShopDashboardPage /> },
+            { path: 'services', element: <ServicesPage /> },
+            { path: 'dock', element: <DockManagement /> },
+            { path: 'orders', element: <RepairShopOrdersPage /> },
+            { path: 'bookings', element: <RepairShopBookingsPage /> },
+            { path: 'bookings/:id', element: <RepairShopBookingDetailPage /> },
+
+            { path: 'profile', element: <BoatyardProfilePage /> },
+            { path: 'complaints', element: <BoatyardComplaintsPage /> },
+            { path: 'success', element: <PaymentSuccessPage /> },
+        ],
     },
 
     {
@@ -119,6 +98,16 @@ const router = createBrowserRouter([
             <ProtectedRoute allowedRole="Supplier">
                 <SupplierLayout>
                     <SupplierProductsPage />
+                </SupplierLayout>
+            </ProtectedRoute>
+        )
+    },
+    {
+        path: '/supplier/orders',
+        element: (
+            <ProtectedRoute allowedRole="Supplier">
+                <SupplierLayout>
+                    <SupplierOrdersPage />
                 </SupplierLayout>
             </ProtectedRoute>
         )
@@ -162,6 +151,11 @@ const router = createBrowserRouter([
                 </SupplierLayout>
             </ProtectedRoute>
         )
+    }
+    ,
+    {
+        path: '/success',
+        element: <PaymentSuccessPage />,
     }
 
 ]);

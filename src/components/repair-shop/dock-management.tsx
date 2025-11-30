@@ -69,7 +69,12 @@ const toLocalInputValue = (iso?: string | null) => {
 const toIsoString = (value: string) => {
     if (!value) return null
     try {
-        return new Date(value).toISOString()
+        // datetime-local input value is in format "YYYY-MM-DDTHH:mm"
+        // We need to interpret it as local time and convert to ISO
+        const date = new Date(value)
+        // Check if date is valid
+        if (isNaN(date.getTime())) return null
+        return date.toISOString()
     } catch {
         return null
     }
@@ -170,26 +175,27 @@ export function DockManagement() {
                 return
             }
 
-            // Validate thời gian nhận (assignedFrom) phải >= thời gian tạo
+            // Validate thời gian nhận (assignedFrom)
             if (assignedFromIso) {
-                let minAllowedDate: string
-                let minDateDescription: string
+                const assignedFromDate = new Date(assignedFromIso)
                 
-                if (editDock?.createdDate) {
-                    // Nếu đang sửa, thời gian nhận phải >= createdDate
-                    minAllowedDate = editDock.createdDate
-                    minDateDescription = `thời gian tạo (${formatDateTime(editDock.createdDate)})`
-                } else {
-                    // Nếu tạo mới, thời gian nhận phải >= thời gian hiện tại
-                    minAllowedDate = new Date().toISOString()
-                    minDateDescription = "thời gian hiện tại"
-                }
-                
-                if (assignedFromIso < minAllowedDate) {
-                    setFormError(`Thời gian nhận phải bằng hoặc sau ${minDateDescription}`)
+                // Check if date is valid
+                if (isNaN(assignedFromDate.getTime())) {
+                    setFormError("Thời gian nhận không hợp lệ")
                     setFormLoading(false)
                     return
                 }
+                
+                if (editDock?.createdDate) {
+                    // Nếu đang sửa, thời gian nhận phải >= createdDate
+                    const createdDate = new Date(editDock.createdDate)
+                    if (isNaN(createdDate.getTime()) || assignedFromDate < createdDate) {
+                        setFormError(`Thời gian nhận phải từ ${formatDateTime(editDock.createdDate)} trở đi`)
+                        setFormLoading(false)
+                        return
+                    }
+                }
+                // Nếu tạo mới, cho phép chọn bất kỳ thời gian nào (có thể lên lịch trước)
             }
 
             // Validate thời gian kết thúc phải sau thời gian bắt đầu
@@ -203,15 +209,15 @@ export function DockManagement() {
                 const payload: UpdateDockSlotRequest = {
                     name,
                     isActive,
-                    assignedFrom: assignedFromIso,
-                    assignedUntil: assignedUntilIso,
+                    assignedFrom: assignedFromIso || null,
+                    assignedUntil: assignedUntilIso || null,
                 }
                 await updateDockSlotApi(editDock.id, payload)
             } else {
                 const payload: CreateDockSlotRequest = {
                     name,
-                    assignedFrom: assignedFromIso,
-                    assignedUntil: assignedUntilIso,
+                    assignedFrom: assignedFromIso || null,
+                    assignedUntil: assignedUntilIso || null,
                 }
                 await createDockSlotApi(payload)
             }
@@ -430,15 +436,22 @@ export function DockManagement() {
                                     id="assignedFrom"
                                     type="datetime-local"
                                     value={formData.assignedFrom}
-                                    onChange={(e) => setFormData({ ...formData, assignedFrom: e.target.value })}
+                                    onChange={(e) => {
+                                        setFormData({ ...formData, assignedFrom: e.target.value })
+                                        setFormError("") // Clear error when user changes value
+                                    }}
                                     placeholder="Chọn thời gian nhận"
                                     min={editDock?.createdDate 
                                         ? toLocalInputValue(editDock.createdDate) 
-                                        : new Date().toISOString().slice(0, 16)}
+                                        : undefined}
                                 />
-                                {editDock?.createdDate && (
+                                {editDock?.createdDate ? (
                                     <p className="text-xs text-muted-foreground">
                                         Thời gian nhận phải từ {formatDateTime(editDock.createdDate)} trở đi
+                                    </p>
+                                ) : (
+                                    <p className="text-xs text-muted-foreground">
+                                        Có thể chọn thời gian trong tương lai để lên lịch trước
                                     </p>
                                 )}
                             </div>

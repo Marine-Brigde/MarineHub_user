@@ -1,16 +1,47 @@
 "use client"
 
 import { useEffect, useState } from "react"
-// link navigation removed; details open in-dialog
-import { Loader2 } from "lucide-react"
+import {
+    Loader2,
+    ShoppingCart,
+    DollarSign,
+    Package,
+    Eye,
+    Calendar,
+    Clock,
+    CheckCircle2,
+    XCircle,
+    AlertCircle,
+    TrendingUp,
+    Search,
+    Filter,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { getOrderByIdApi } from "@/api/Order/orderApi"
 import type { OrderDetailResponseData } from "@/types/Order/order"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { getOrdersApi } from "@/api/Order/orderApi"
 import type { OrderResponseData } from "@/types/Order/order"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
 import {
     Pagination,
     PaginationContent,
@@ -30,12 +61,12 @@ import {
 } from "@/components/ui/breadcrumb"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 
-const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-    pending: { bg: "bg-yellow-100", text: "text-yellow-700" },
-    approved: { bg: "bg-blue-100", text: "text-blue-700" },
-    delivered: { bg: "bg-purple-100", text: "text-purple-700" },
-    completed: { bg: "bg-green-100", text: "text-green-700" },
-    rejected: { bg: "bg-red-100", text: "text-red-700" },
+const STATUS_COLORS: Record<string, { bg: string; text: string; icon: typeof CheckCircle2 }> = {
+    pending: { bg: "bg-yellow-100", text: "text-yellow-700", icon: Clock },
+    approved: { bg: "bg-blue-100", text: "text-blue-700", icon: CheckCircle2 },
+    delivered: { bg: "bg-purple-100", text: "text-purple-700", icon: Package },
+    completed: { bg: "bg-green-100", text: "text-green-700", icon: CheckCircle2 },
+    rejected: { bg: "bg-red-100", text: "text-red-700", icon: XCircle },
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -52,6 +83,10 @@ export default function RepairShopOrders() {
     const [error, setError] = useState<string | null>(null)
     const [currentPage, setCurrentPage] = useState(1)
     const [totalPages, setTotalPages] = useState(1)
+    const [total, setTotal] = useState(0)
+    const [totalAmount, setTotalAmount] = useState(0)
+    const [searchTerm, setSearchTerm] = useState("")
+    const [statusFilter, setStatusFilter] = useState<string>("all")
     const pageSize = 10
 
     // Dialog / detail state
@@ -94,7 +129,7 @@ export default function RepairShopOrders() {
         if (!selectedOrder) return
         setDetailLoading(true)
         try {
-            await (await import('@/api/Order/orderApi')).updateOrderApi(selectedOrder.id, { status: newStatus })
+            await (await import('@/api/Order/orderApi')).updateOrderApi(selectedOrder.id, { status: newStatus as any })
             // refresh order list and selected order
             loadOrders(currentPage)
             const res = await (await import('@/api/Order/orderApi')).getOrderByIdApi(selectedOrder.id)
@@ -122,10 +157,17 @@ export default function RepairShopOrders() {
             const res = await getOrdersApi({ page, pageSize })
             if (res?.data?.items) {
                 setOrders(res.data.items)
+                setTotal(res.data.total || res.data.items.length)
                 setTotalPages(Math.ceil((res.data.total || res.data.items.length) / pageSize))
                 setCurrentPage(page)
+                
+                // Calculate total amount
+                const total = res.data.items.reduce((sum: number, order: OrderResponseData) => sum + (order.totalAmount || 0), 0)
+                setTotalAmount(total)
             } else {
                 setOrders([])
+                setTotal(0)
+                setTotalAmount(0)
             }
         } catch (err: any) {
             console.error("getOrdersApi error", err)
@@ -140,10 +182,17 @@ export default function RepairShopOrders() {
     }, [])
 
     const getStatusBadge = (status: string) => {
-        const colors = STATUS_COLORS[status?.toLowerCase()] || STATUS_COLORS.pending
-        const label = STATUS_LABELS[status?.toLowerCase()] || status
+        const statusLower = status?.toLowerCase() || ''
+        const colors = STATUS_COLORS[statusLower] || STATUS_COLORS.pending
+        const label = STATUS_LABELS[statusLower] || status
+        const Icon = colors.icon
 
-        return <Badge className={`${colors.bg} ${colors.text} font-semibold text-xs px-2 py-1`}>{label}</Badge>
+        return (
+            <Badge className={`${colors.bg} ${colors.text} font-semibold text-xs px-2 py-1 flex items-center gap-1.5 w-fit`}>
+                <Icon className="h-3 w-3" />
+                {label}
+            </Badge>
+        )
     }
 
     const getPageNumbers = () => {
@@ -181,224 +230,474 @@ export default function RepairShopOrders() {
         return pages
     }
 
+    const formatDateTime = (dateString?: string) => {
+        if (!dateString) return '-'
+        try {
+            const date = new Date(dateString)
+            return date.toLocaleString('vi-VN', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            })
+        } catch {
+            return '-'
+        }
+    }
+
+    // Filter orders
+    const filteredOrders = orders.filter((order) => {
+        const matchesSearch = !searchTerm || order.id.toLowerCase().includes(searchTerm.toLowerCase())
+        const matchesStatus = statusFilter === 'all' || order.status?.toLowerCase() === statusFilter.toLowerCase()
+        return matchesSearch && matchesStatus
+    })
+
+    // Calculate stats
+    const stats = {
+        total: total,
+        totalAmount: totalAmount,
+        pending: orders.filter(o => o.status?.toLowerCase() === 'pending').length,
+        completed: orders.filter(o => o.status?.toLowerCase() === 'completed').length,
+    }
+
     return (
-        <div className="min-h-screen bg-background px-4">
-            <div className="container mx-auto py-4 px-4">
-
-                <div className="mb-4 flex items-center gap-2">
-
-                    <SidebarTrigger className="h-5 w-5" />
+        <div className="container mx-auto py-6 px-4 space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div>
                     <Breadcrumb>
                         <BreadcrumbList>
                             <BreadcrumbItem>
-
-                                <BreadcrumbLink href="/repair-shop" className="text-xs">
-                                    Xưởng sửa chữa
-                                </BreadcrumbLink>
+                                <BreadcrumbLink href="/repair-shop/dashboard">Tổng quan</BreadcrumbLink>
                             </BreadcrumbItem>
                             <BreadcrumbSeparator />
-
                             <BreadcrumbItem>
-                                <BreadcrumbPage className="text-xs">Đơn hàng</BreadcrumbPage>
+                                <BreadcrumbPage>Đơn hàng</BreadcrumbPage>
                             </BreadcrumbItem>
                         </BreadcrumbList>
                     </Breadcrumb>
+                    <div className="flex items-center gap-4 mt-2">
+                        <SidebarTrigger />
+                        <h1 className="text-3xl font-bold text-foreground">Quản lý đơn hàng</h1>
+                    </div>
+                    <p className="text-muted-foreground mt-1">Theo dõi và quản lý các đơn hàng từ khách hàng</p>
                 </div>
-                <h1 className="text-3xl font-semibold py-4">Quản lý đơn hàng</h1>
+            </div>
 
-                <Card className="border shadow-sm">
-                    <CardContent className="p-0">
-                        {loading ? (
-                            <div className="flex items-center justify-center py-6">
-                                <div className="flex flex-col items-center gap-2">
-                                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                                    <p className="text-xs text-muted-foreground">Đang tải...</p>
-                                </div>
-                            </div>
-                        ) : error ? (
-                            <div className="p-4 text-center">
-                                <p className="text-xs text-destructive font-medium mb-2">{error}</p>
-                                <button onClick={() => loadOrders(1)} className="text-xs text-primary hover:underline font-medium">
-                                    Thử lại
-                                </button>
-                            </div>
-                        ) : orders.length === 0 ? (
-                            <div className="p-6 text-center">
-                                <p className="text-xs text-muted-foreground">Không có đơn hàng nào</p>
-                            </div>
-                        ) : (
-                            <>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm">
-                                        <thead className="bg-muted/50 border-b">
-                                            <tr>
-                                                <th className="text-left px-4 py-2 font-semibold text-xs">Mã đơn</th>
-                                                <th className="text-right px-4 py-2 font-semibold text-xs">Tổng tiền</th>
-                                                <th className="text-center px-4 py-2 font-semibold text-xs">Trạng thái</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y">
-                                            {orders.map((order) => (
-                                                <tr key={order.id} className="hover:bg-muted/30 transition-colors">
-                                                    <td className="px-4 py-2">
-                                                        <button
-                                                            onClick={() => handleOpenDetail(order.id)}
-                                                            className="text-primary hover:underline font-medium text-xs"
-                                                        >
-                                                            #{order.id}
-                                                        </button>
-                                                    </td>
-                                                    <td className="px-4 py-2 text-right font-semibold text-xs">
-                                                        {order.totalAmount?.toLocaleString("vi-VN")} đ
-                                                    </td>
-                                                    <td className="px-4 py-2 text-center">{getStatusBadge(order.status)}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                {totalPages > 1 && (
-                                    <div className="flex items-center justify-center gap-1 py-3 px-4 border-t bg-muted/30">
-                                        <Pagination>
-                                            <PaginationContent className="gap-0">
-                                                <PaginationItem>
-                                                    <PaginationPrevious
-                                                        href="#"
-                                                        onClick={(e) => {
-                                                            e.preventDefault()
-                                                            if (currentPage > 1) loadOrders(currentPage - 1)
-                                                        }}
-                                                        className={`text-xs h-8 px-2 ${currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
-                                                    />
-                                                </PaginationItem>
-
-                                                {getPageNumbers().map((page, idx) => (
-                                                    <PaginationItem key={idx}>
-                                                        {page === "..." ? (
-                                                            <PaginationEllipsis />
-                                                        ) : (
-                                                            <PaginationLink
-                                                                href="#"
-                                                                isActive={page === currentPage}
-                                                                onClick={(e) => {
-                                                                    e.preventDefault()
-                                                                    if (typeof page === "number") {
-                                                                        loadOrders(page)
-                                                                    }
-                                                                }}
-                                                                className={`text-xs h-8 px-2 ${page === currentPage ? "bg-primary text-primary-foreground" : ""}`}
-                                                            >
-                                                                {page}
-                                                            </PaginationLink>
-                                                        )}
-                                                    </PaginationItem>
-                                                ))}
-
-                                                <PaginationItem>
-                                                    <PaginationNext
-                                                        href="#"
-                                                        onClick={(e) => {
-                                                            e.preventDefault()
-                                                            if (currentPage < totalPages) loadOrders(currentPage + 1)
-                                                        }}
-                                                        className={`text-xs h-8 px-2 ${currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
-                                                    />
-                                                </PaginationItem>
-                                            </PaginationContent>
-                                        </Pagination>
-                                    </div>
-                                )}
-
-                                <div className="px-4 py-1.5 bg-muted/20 text-center text-xs text-muted-foreground border-t">
-                                    Trang {currentPage}/{totalPages}
-                                </div>
-                            </>
-                        )}
+            {/* Error Message */}
+            {error && (
+                <Card className="border-destructive">
+                    <CardContent className="pt-6">
+                        <p className="text-sm text-destructive">{error}</p>
                     </CardContent>
                 </Card>
-                {/* Order detail dialog */}
-                <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) handleCloseDetail(); setDialogOpen(open) }}>
-                    <DialogContent className="sm:max-w-xl">
-                        <DialogHeader>
-                            <DialogTitle>Chi tiết đơn hàng</DialogTitle>
-                        </DialogHeader>
+            )}
 
-                        <div className="p-4">
-                            {detailLoading ? (
-                                <div className="flex items-center justify-center py-6">
-                                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                                </div>
-                            ) : detailError ? (
-                                <div className="text-destructive text-sm">{detailError}</div>
-                            ) : selectedOrder ? (
-                                <div className="space-y-3">
-                                    <div className="flex justify-between">
-                                        <div className="font-medium">Mã đơn hàng</div>
-                                        <div className="truncate">{selectedOrder.id}</div>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <div className="font-medium">Mã (code)</div>
-                                        <div>{selectedOrder.orderCode || '-'}</div>
-                                    </div>
-                                    <div className="flex flex-col gap-3">
-                                        <div className="flex items-center justify-between">
-                                            <div className="font-medium">Trạng thái</div>
-                                            <div>{getStatusBadge(selectedOrder.status)}</div>
-                                        </div>
+            {/* Stats Cards */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Tổng đơn hàng</CardTitle>
+                        <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{stats.total}</div>
+                        <p className="text-xs text-muted-foreground">
+                            Tất cả đơn hàng
+                        </p>
+                    </CardContent>
+                </Card>
 
-                                        <div className="flex items-center gap-2">
-                                            <select
-                                                defaultValue={selectedOrder.status}
-                                                onChange={(e) => updateOrderStatus(e.target.value)}
-                                                className="border rounded px-2 py-1 text-sm"
-                                            >
-                                                {allowedStatusesFor(selectedOrder.status).map((s) => (
-                                                    <option key={s} value={s}>{STATUS_LABELS[s.toLowerCase()] || s}</option>
-                                                ))}
-                                            </select>
-                                            <div className="text-sm text-muted-foreground">Chọn trạng thái để cập nhật</div>
-                                        </div>
-
-                                        <div className="flex justify-between">
-                                            <div className="font-medium">Tổng tiền</div>
-                                            <div>{selectedOrder.totalAmount?.toLocaleString() || 0} đ</div>
-                                        </div>
-
-                                        <div>
-                                            <div className="font-medium mb-2">Sản phẩm</div>
-                                            {selectedOrder.items && selectedOrder.items.length > 0 ? (
-                                                <div className="space-y-2">
-                                                    {selectedOrder.items.map((it, idx) => (
-                                                        <div key={idx} className="flex justify-between">
-                                                            <div className="truncate">{it.productVariantName || it.productVariantId || it.productOptionName || 'Sản phẩm'}</div>
-                                                            <div className="text-sm">{(it.quantity || 0)} x {it.price ? `${it.price.toLocaleString()} đ` : '-'}</div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div className="text-sm text-muted-foreground">Không có sản phẩm chi tiết.</div>
-                                            )}
-                                        </div>
-                                    </div>
-
-
-
-
-                                </div>
-                            ) : (
-                                <div className="text-sm text-muted-foreground">Không có dữ liệu</div>
-                            )}
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Tổng doanh thu</CardTitle>
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-primary">
+                            {stats.totalAmount.toLocaleString('vi-VN')} đ
                         </div>
+                        <p className="text-xs text-muted-foreground">
+                            Tổng giá trị đơn hàng
+                        </p>
+                    </CardContent>
+                </Card>
 
-                        <DialogFooter>
-                            <div className="w-full flex justify-end">
-                                <Button variant="outline" onClick={handleCloseDetail}>Đóng</Button>
-                            </div>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Chờ xử lý</CardTitle>
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+                        <p className="text-xs text-muted-foreground">
+                            Đơn hàng đang chờ
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Hoàn tất</CardTitle>
+                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
+                        <p className="text-xs text-muted-foreground">
+                            Đơn hàng đã hoàn thành
+                        </p>
+                    </CardContent>
+                </Card>
             </div>
+
+            {/* Orders Table */}
+            <Card className="border shadow-sm">
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <CardTitle className="flex items-center gap-2">
+                            <Package className="h-5 w-5 text-primary" />
+                            Danh sách đơn hàng
+                        </CardTitle>
+                        <Badge variant="outline" className="text-sm">
+                            {filteredOrders.length} đơn hàng
+                        </Badge>
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {/* Search and Filter */}
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Tìm kiếm theo mã đơn hàng..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-10"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Filter className="h-4 w-4 text-muted-foreground" />
+                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Lọc theo trạng thái" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                                    <SelectItem value="pending">Chờ xử lý</SelectItem>
+                                    <SelectItem value="approved">Đã duyệt</SelectItem>
+                                    <SelectItem value="delivered">Đã giao</SelectItem>
+                                    <SelectItem value="completed">Hoàn tất</SelectItem>
+                                    <SelectItem value="rejected">Bị từ chối</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    {loading ? (
+                        <div className="flex items-center justify-center py-12">
+                            <div className="flex flex-col items-center gap-4">
+                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                <p className="text-muted-foreground">Đang tải đơn hàng...</p>
+                            </div>
+                        </div>
+                    ) : error ? (
+                        <div className="p-6 text-center">
+                            <p className="text-sm text-destructive font-medium mb-2">{error}</p>
+                            <Button onClick={() => loadOrders(1)} variant="outline" size="sm">
+                                Thử lại
+                            </Button>
+                        </div>
+                    ) : filteredOrders.length === 0 ? (
+                        <div className="p-12 text-center">
+                            <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                            <p className="text-muted-foreground">
+                                {searchTerm || statusFilter !== 'all' 
+                                    ? "Không tìm thấy đơn hàng phù hợp" 
+                                    : "Chưa có đơn hàng nào"}
+                            </p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="w-[120px]">Mã đơn hàng</TableHead>
+                                            <TableHead>Ngày tạo</TableHead>
+                                            <TableHead className="text-right">Tổng tiền</TableHead>
+                                            <TableHead className="text-center">Trạng thái</TableHead>
+                                            <TableHead className="text-right">Thao tác</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredOrders.map((order) => (
+                                            <TableRow key={order.id} className="hover:bg-muted/30 transition-colors">
+                                                <TableCell className="font-medium">
+                                                    <div className="flex items-center gap-2">
+                                                        <Package className="h-4 w-4 text-muted-foreground" />
+                                                        <span className="text-sm font-mono">#{order.id.slice(0, 8)}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                        <Calendar className="h-3.5 w-3.5" />
+                                                        <span>-</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <DollarSign className="h-4 w-4 text-primary" />
+                                                        <span className="font-semibold text-primary">
+                                                            {order.totalAmount?.toLocaleString('vi-VN')} đ
+                                                        </span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    {getStatusBadge(order.status)}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => handleOpenDetail(order.id)}
+                                                        className="gap-2"
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                        Xem chi tiết
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+
+                            {totalPages > 1 && (
+                                <div className="flex items-center justify-center gap-1 py-4 px-4 border-t bg-muted/30">
+                                    <Pagination>
+                                        <PaginationContent className="gap-0">
+                                            <PaginationItem>
+                                                <PaginationPrevious
+                                                    href="#"
+                                                    onClick={(e) => {
+                                                        e.preventDefault()
+                                                        if (currentPage > 1) loadOrders(currentPage - 1)
+                                                    }}
+                                                    className={`text-xs h-8 px-2 ${currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+                                                />
+                                            </PaginationItem>
+
+                                            {getPageNumbers().map((page, idx) => (
+                                                <PaginationItem key={idx}>
+                                                    {page === "..." ? (
+                                                        <PaginationEllipsis />
+                                                    ) : (
+                                                        <PaginationLink
+                                                            href="#"
+                                                            isActive={page === currentPage}
+                                                            onClick={(e) => {
+                                                                e.preventDefault()
+                                                                if (typeof page === "number") {
+                                                                    loadOrders(page)
+                                                                }
+                                                            }}
+                                                            className={`text-xs h-8 px-2 ${page === currentPage ? "bg-primary text-primary-foreground" : ""}`}
+                                                        >
+                                                            {page}
+                                                        </PaginationLink>
+                                                    )}
+                                                </PaginationItem>
+                                            ))}
+
+                                            <PaginationItem>
+                                                <PaginationNext
+                                                    href="#"
+                                                    onClick={(e) => {
+                                                        e.preventDefault()
+                                                        if (currentPage < totalPages) loadOrders(currentPage + 1)
+                                                    }}
+                                                    className={`text-xs h-8 px-2 ${currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+                                                />
+                                            </PaginationItem>
+                                        </PaginationContent>
+                                    </Pagination>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* Order detail dialog */}
+            <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) handleCloseDetail(); setDialogOpen(open) }}>
+                <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Package className="h-5 w-5 text-primary" />
+                            Chi tiết đơn hàng
+                        </DialogTitle>
+                        <DialogDescription>
+                            Thông tin chi tiết và quản lý trạng thái đơn hàng
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4">
+                        {detailLoading ? (
+                            <div className="flex items-center justify-center py-12">
+                                <div className="flex flex-col items-center gap-4">
+                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                    <p className="text-muted-foreground">Đang tải thông tin đơn hàng...</p>
+                                </div>
+                            </div>
+                        ) : detailError ? (
+                            <Card className="border-destructive">
+                                <CardContent className="pt-6">
+                                    <p className="text-sm text-destructive">{detailError}</p>
+                                </CardContent>
+                            </Card>
+                        ) : selectedOrder ? (
+                            <div className="space-y-6">
+                                {/* Order Info */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="text-base flex items-center gap-2">
+                                            <ShoppingCart className="h-4 w-4" />
+                                            Thông tin đơn hàng
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground">Mã đơn hàng</Label>
+                                                <p className="text-sm font-mono font-semibold mt-1">#{selectedOrder.id}</p>
+                                            </div>
+                                            {selectedOrder.orderCode && (
+                                                <div>
+                                                    <Label className="text-xs text-muted-foreground">Mã code</Label>
+                                                    <p className="text-sm font-semibold mt-1">{selectedOrder.orderCode}</p>
+                                                </div>
+                                            )}
+                                            {selectedOrder.createdDate && (
+                                                <div>
+                                                    <Label className="text-xs text-muted-foreground">Ngày tạo</Label>
+                                                    <div className="flex items-center gap-1.5 mt-1">
+                                                        <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                                                        <p className="text-sm">{formatDateTime(selectedOrder.createdDate)}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground">Trạng thái</Label>
+                                                <div className="mt-1">{getStatusBadge(selectedOrder.status)}</div>
+                                            </div>
+                                        </div>
+                                        <Separator />
+                                        <div className="flex items-center justify-between">
+                                            <Label className="text-sm font-semibold flex items-center gap-2">
+                                                <DollarSign className="h-4 w-4 text-primary" />
+                                                Tổng tiền
+                                            </Label>
+                                            <p className="text-2xl font-bold text-primary">
+                                                {selectedOrder.totalAmount?.toLocaleString('vi-VN')} đ
+                                            </p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Status Update */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="text-base flex items-center gap-2">
+                                            <TrendingUp className="h-4 w-4" />
+                                            Cập nhật trạng thái
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-3">
+                                            <Label>Chọn trạng thái mới</Label>
+                                            <Select
+                                                defaultValue={selectedOrder.status}
+                                                onValueChange={updateOrderStatus}
+                                                disabled={detailLoading}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {allowedStatusesFor(selectedOrder.status).map((s) => (
+                                                        <SelectItem key={s} value={s}>
+                                                            {STATUS_LABELS[s.toLowerCase()] || s}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <p className="text-xs text-muted-foreground">
+                                                Trạng thái sẽ được cập nhật ngay sau khi chọn
+                                            </p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Order Items */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="text-base flex items-center gap-2">
+                                            <Package className="h-4 w-4" />
+                                            Sản phẩm trong đơn
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {selectedOrder.items && selectedOrder.items.length > 0 ? (
+                                            <div className="space-y-3">
+                                                {selectedOrder.items.map((item, idx) => (
+                                                    <div key={idx} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                                        <div className="flex-1">
+                                                            <p className="font-semibold text-sm">
+                                                                {item.productVariantName || item.productOptionName || 'Sản phẩm'}
+                                                            </p>
+                                                            {item.productVariantId && (
+                                                                <p className="text-xs text-muted-foreground mt-1">
+                                                                    ID: {item.productVariantId}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-right ml-4">
+                                                            <p className="text-sm font-semibold">
+                                                                {item.quantity || 0} x {item.price ? `${item.price.toLocaleString('vi-VN')} đ` : '-'}
+                                                            </p>
+                                                            {item.price && item.quantity && (
+                                                                <p className="text-xs text-muted-foreground mt-1">
+                                                                    = {(item.price * item.quantity).toLocaleString('vi-VN')} đ
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-6">
+                                                <Package className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                                                <p className="text-sm text-muted-foreground">Không có sản phẩm chi tiết</p>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        ) : (
+                            <div className="text-center py-6">
+                                <p className="text-sm text-muted-foreground">Không có dữ liệu</p>
+                            </div>
+                        )}
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={handleCloseDetail}>
+                            Đóng
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

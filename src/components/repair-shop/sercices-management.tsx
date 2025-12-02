@@ -130,7 +130,7 @@ export function ServicesManagement() {
                 <Breadcrumb>
                     <BreadcrumbList>
                         <BreadcrumbItem>
-                            <BreadcrumbLink href="/repair-shop">Xưởng sửa chữa</BreadcrumbLink>
+                            <BreadcrumbLink href="/repair-shop/dashboard">Xưởng sửa chữa</BreadcrumbLink>
                         </BreadcrumbItem>
                         <BreadcrumbSeparator />
                         <BreadcrumbItem>

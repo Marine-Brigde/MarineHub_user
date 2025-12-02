@@ -1,5 +1,6 @@
 
 
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -28,6 +29,10 @@ import {
 } from "lucide-react"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
+import { getRevenuesApi } from "@/api/repairShop/revenueApi"
+import type { MonthlyRevenue } from "@/types/repairShop/revenue"
+import { Input } from "@/components/ui/input"
+import { Loader2 } from "lucide-react"
 
 const serviceData = [
     { month: "T1", completed: 18, revenue: 450000 },
@@ -57,6 +62,41 @@ const chartConfig = {
 }
 
 export function RepairShopDashboard() {
+    const [revenueData, setRevenueData] = useState<{ month: string; revenue: number }[]>(serviceData.map(s => ({ month: s.month, revenue: s.revenue })))
+    const [revLoading, setRevLoading] = useState(false)
+    const [revError, setRevError] = useState<string | null>(null)
+    const [startDate, setStartDate] = useState<string>(() => {
+        const d = new Date()
+        d.setDate(d.getDate() - 30)
+        return d.toISOString().slice(0, 10)
+    })
+    const [endDate, setEndDate] = useState<string>(() => new Date().toISOString().slice(0, 10))
+    const [rawRevenues, setRawRevenues] = useState<MonthlyRevenue[]>([])
+
+    const loadRevenues = async (start?: string, end?: string) => {
+        setRevLoading(true)
+        setRevError(null)
+        try {
+            const res = await getRevenuesApi({ startDate: start, endDate: end })
+            const items: MonthlyRevenue[] = (res as any)?.data ?? []
+            setRawRevenues(items)
+            // map to chart format: show month label as T{month}
+            const mapped = items.map((it) => ({ month: `T${it.month}`, revenue: Number(it.totalRevenue || 0) }))
+            setRevenueData(mapped.slice(0, 6).reverse())
+        } catch (err) {
+            console.error('getRevenuesApi', err)
+            setRevError('Không thể tải doanh thu')
+        } finally {
+            setRevLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        // initial load with default dates
+        loadRevenues(startDate, endDate)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
     return (
         <div className="flex flex-col gap-4 p-4 md:p-6">
             {/* Header */}
@@ -144,16 +184,59 @@ export function RepairShopDashboard() {
                         <CardDescription>Số lượng dịch vụ hoàn thành theo tháng</CardDescription>
                     </CardHeader>
                     <CardContent>
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className="flex items-center gap-2">
+                                <label className="text-sm text-muted-foreground">Từ</label>
+                                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <label className="text-sm text-muted-foreground">Đến</label>
+                                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                            </div>
+                            <div>
+                                <Button onClick={() => loadRevenues(startDate, endDate)} disabled={revLoading}>
+                                    {revLoading ? <Loader2 className="animate-spin h-4 w-4" /> : 'Tải'}
+                                </Button>
+                            </div>
+                        </div>
                         <ChartContainer config={chartConfig} className="h-[200px]">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={serviceData}>
+                                <BarChart data={revenueData.length ? revenueData : serviceData}>
                                     <XAxis dataKey="month" />
                                     <YAxis />
                                     <ChartTooltip content={<ChartTooltipContent />} />
-                                    <Bar dataKey="completed" fill="var(--color-completed)" radius={4} />
+                                    <Bar dataKey="revenue" fill="var(--color-completed)" radius={4} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </ChartContainer>
+                        {revError && <div className="text-sm text-destructive mt-2">{revError}</div>}
+                        {/* Detailed revenues table */}
+                        <div className="mt-4">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="text-left text-xs text-muted-foreground">
+                                        <th className="pb-2">Tháng</th>
+                                        <th className="pb-2">Năm</th>
+                                        <th className="pb-2 text-right">Tổng doanh thu</th>
+                                        <th className="pb-2 text-right">Net doanh thu</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {rawRevenues.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={4} className="py-3 text-muted-foreground">Chưa có dữ liệu</td>
+                                        </tr>
+                                    ) : rawRevenues.map((r, idx) => (
+                                        <tr key={idx} className="border-t">
+                                            <td className="py-2">{`T${r.month}`}</td>
+                                            <td className="py-2">{r.year}</td>
+                                            <td className="py-2 text-right">{Number(r.totalRevenue).toLocaleString('vi-VN')} đ</td>
+                                            <td className="py-2 text-right">{Number(r.netRevenue).toLocaleString('vi-VN')} đ</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </CardContent>
                 </Card>
 

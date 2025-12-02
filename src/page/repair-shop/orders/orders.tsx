@@ -11,8 +11,8 @@ import {
     Clock,
     CheckCircle2,
     XCircle,
-    AlertCircle,
-    TrendingUp,
+
+
     Search,
     Filter,
 } from "lucide-react"
@@ -104,7 +104,7 @@ export default function RepairShopOrders() {
         setSelectedOrder(null)
         try {
             const res = await getOrderByIdApi(id)
-            if (res && res.data) setSelectedOrder(res.data as OrderDetailResponseData)
+            if (res && res.data) setSelectedOrder(normalizeOrderDetail(res.data as OrderDetailResponseData))
             else setDetailError('Không tìm thấy đơn hàng')
         } catch (err: any) {
             console.error('getOrderByIdApi error', err)
@@ -114,32 +114,30 @@ export default function RepairShopOrders() {
         }
     }
 
-    // status update helpers (same rules)
-    const allowedStatusesFor = (current?: string) => {
-        const c = (current || '').toLowerCase()
-        if (c === 'pending') return ['Pending', 'Approved', 'Delivered', 'Completed', 'Rejected']
-        if (c === 'approved') return ['Approved', 'Delivered', 'Completed']
-        if (c === 'delivered') return ['Delivered', 'Completed']
-        if (c === 'completed') return ['Completed']
-        if (c === 'rejected') return ['Rejected']
-        return ['Pending', 'Approved', 'Delivered', 'Completed', 'Rejected']
-    }
 
-    const updateOrderStatus = async (newStatus: string) => {
-        if (!selectedOrder) return
-        setDetailLoading(true)
-        try {
-            await (await import('@/api/Order/orderApi')).updateOrderApi(selectedOrder.id, { status: newStatus as any })
-            // refresh order list and selected order
-            loadOrders(currentPage)
-            const res = await (await import('@/api/Order/orderApi')).getOrderByIdApi(selectedOrder.id)
-            if (res && res.data) setSelectedOrder(res.data as OrderDetailResponseData)
-        } catch (err) {
-            console.error('updateOrderApi', err)
-            setDetailError('Không thể cập nhật trạng thái')
-        } finally {
-            setDetailLoading(false)
-        }
+
+    // Ensure order detail items have readable names when backend omits them
+    const normalizeOrderDetail = (order: OrderDetailResponseData): OrderDetailResponseData => {
+        if (!order) return order
+        // support both `items` and server's `orderItems` field
+        const rawItems: any[] = (order as any).items ?? (order as any).orderItems ?? []
+
+        const items = rawItems.map((it: any) => {
+            // backend may use different field names (productVariantName/productOptionName/productVariantId)
+            const productVariantName = it.productVariantName || it.productOptionName || it.productVariantId || 'Sản phẩm'
+            const productOptionName = it.productOptionName || it.productVariantName || it.productVariantId || 'Sản phẩm'
+            return {
+                // keep original ids if present
+                id: it.id,
+                productVariantId: it.productVariantId,
+                productVariantName,
+                productOptionName,
+                quantity: it.quantity ?? 0,
+                price: it.price ?? 0,
+            }
+        })
+
+        return { ...order, items }
     }
 
     const handleCloseDetail = () => {
@@ -160,7 +158,7 @@ export default function RepairShopOrders() {
                 setTotal(res.data.total || res.data.items.length)
                 setTotalPages(Math.ceil((res.data.total || res.data.items.length) / pageSize))
                 setCurrentPage(page)
-                
+
                 // Calculate total amount
                 const total = res.data.items.reduce((sum: number, order: OrderResponseData) => sum + (order.totalAmount || 0), 0)
                 setTotalAmount(total)
@@ -412,8 +410,8 @@ export default function RepairShopOrders() {
                         <div className="p-12 text-center">
                             <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                             <p className="text-muted-foreground">
-                                {searchTerm || statusFilter !== 'all' 
-                                    ? "Không tìm thấy đơn hàng phù hợp" 
+                                {searchTerm || statusFilter !== 'all'
+                                    ? "Không tìm thấy đơn hàng phù hợp"
                                     : "Chưa có đơn hàng nào"}
                             </p>
                         </div>
@@ -605,39 +603,7 @@ export default function RepairShopOrders() {
                                     </CardContent>
                                 </Card>
 
-                                {/* Status Update */}
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="text-base flex items-center gap-2">
-                                            <TrendingUp className="h-4 w-4" />
-                                            Cập nhật trạng thái
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="space-y-3">
-                                            <Label>Chọn trạng thái mới</Label>
-                                            <Select
-                                                defaultValue={selectedOrder.status}
-                                                onValueChange={updateOrderStatus}
-                                                disabled={detailLoading}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {allowedStatusesFor(selectedOrder.status).map((s) => (
-                                                        <SelectItem key={s} value={s}>
-                                                            {STATUS_LABELS[s.toLowerCase()] || s}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <p className="text-xs text-muted-foreground">
-                                                Trạng thái sẽ được cập nhật ngay sau khi chọn
-                                            </p>
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                {/* Status is displayed above; editing status is disabled here */}
 
                                 {/* Order Items */}
                                 <Card>
@@ -653,23 +619,18 @@ export default function RepairShopOrders() {
                                                 {selectedOrder.items.map((item, idx) => (
                                                     <div key={idx} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                                                         <div className="flex-1">
-                                                            <p className="font-semibold text-sm">
-                                                                {item.productVariantName || item.productOptionName || 'Sản phẩm'}
-                                                            </p>
-                                                            {item.productVariantId && (
-                                                                <p className="text-xs text-muted-foreground mt-1">
-                                                                    ID: {item.productVariantId}
-                                                                </p>
+                                                            <p className="font-semibold text-sm">{item.productVariantName || item.productVariantId || 'Sản phẩm'}</p>
+                                                            {item.productOptionName && item.productOptionName !== item.productVariantName && (
+                                                                <p className="text-xs text-muted-foreground mt-1">Option: {item.productOptionName}</p>
                                                             )}
+
                                                         </div>
                                                         <div className="text-right ml-4">
                                                             <p className="text-sm font-semibold">
                                                                 {item.quantity || 0} x {item.price ? `${item.price.toLocaleString('vi-VN')} đ` : '-'}
                                                             </p>
                                                             {item.price && item.quantity && (
-                                                                <p className="text-xs text-muted-foreground mt-1">
-                                                                    = {(item.price * item.quantity).toLocaleString('vi-VN')} đ
-                                                                </p>
+                                                                <p className="text-xs text-muted-foreground mt-1">= {(item.price * item.quantity).toLocaleString('vi-VN')} đ</p>
                                                             )}
                                                         </div>
                                                     </div>

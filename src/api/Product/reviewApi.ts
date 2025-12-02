@@ -28,3 +28,12 @@ export const getProductReviewsApi = async (
     return response.data
 }
 
+// ⭐ Tạo review cho product (POST /v1/products/{id}/reviews)
+export const createProductReviewApi = async (
+    id: string,
+    data: { rating: number; comment?: string }
+) => {
+    const response = await axiosClient.post(`/v1/products/${id}/reviews`, data)
+    return response.data
+}
+

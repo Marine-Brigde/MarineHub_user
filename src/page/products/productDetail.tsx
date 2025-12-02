@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { Loader2, ArrowLeft, Package } from "lucide-react"
+import { Loader2, ArrowLeft, Package, ShoppingCart } from "lucide-react"
 import Header from "@/components/common/header"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -24,6 +24,7 @@ import { createOrderApi } from "@/api/Order/orderApi"
 import { createPaymentApi } from "@/api/payment/paymentApi"
 import type { CreateOrderRequest } from "@/types/Order/order"
 import type { Product } from "@/types/Product/product"
+import ProductReviews from "@/components/product/reviews"
 
 export default function ProductDetail() {
     const { id } = useParams()
@@ -53,6 +54,7 @@ export default function ProductDetail() {
             window.alert("Vui lòng chọn biến thể trước khi đặt hàng")
             return
         }
+
         const payload: CreateOrderRequest = {
             orderItems: [
                 {
@@ -87,7 +89,6 @@ export default function ProductDetail() {
                 } catch (payErr) {
                     console.error("Payment API error", payErr)
                 }
-
                 window.alert("Tạo đơn hàng thành công (ID: " + (orderId || "") + ")")
                 setSelectedVariantId(null)
                 setSelectedVariantName(undefined)
@@ -185,36 +186,44 @@ export default function ProductDetail() {
     return (
         <div className="min-h-screen bg-background">
             <Header />
-            <div className="container mx-auto py-4 px-4">
+            <div className="container mx-auto py-6 px-4">
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="mb-4 hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors"
+                    className="mb-6 hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors"
                     onClick={() => navigate(-1)}
                 >
                     <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại
                 </Button>
 
                 {product && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="md:col-span-1">
-                            <div className="space-y-3">
-                                <div className="relative w-full aspect-square overflow-hidden rounded-lg bg-muted border border-border">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Image Gallery */}
+                        <div className="lg:col-span-1">
+                            <div className="space-y-3 sticky top-24">
+                                <div className="relative w-full aspect-square overflow-hidden rounded-xl bg-muted border border-border/50 shadow-sm">
                                     <img
                                         src={images[mainImageIndex].imageUrl || "/placeholder.svg"}
                                         alt={product.name}
-                                        className="h-full w-full object-cover hover:scale-105 transition-transform duration-300"
+                                        className="h-full w-full object-cover hover:scale-110 transition-transform duration-300"
                                         onError={(e) => {
                                             ; (e.target as HTMLImageElement).src = "/placeholder.svg"
                                         }}
                                     />
+                                    <div className="absolute top-3 right-3 bg-black/50 backdrop-blur text-white px-2 py-1 rounded text-xs font-medium">
+                                        {mainImageIndex + 1} / {images.length}
+                                    </div>
                                 </div>
+
+                                {/* Thumbnail Gallery */}
                                 <div className="flex gap-2 overflow-x-auto pb-2">
                                     {images.map((img, idx) => (
                                         <button
                                             key={img.id}
-                                            aria-label={`Xem ảnh ${idx + 1}`}
-                                            className={`w-16 h-16 rounded-md overflow-hidden flex-shrink-0 border-2 transition-all ${idx === mainImageIndex ? "border-primary shadow-md" : "border-border hover:border-primary/50"
+                                            aria-label={`View image ${idx + 1}`}
+                                            className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${idx === mainImageIndex
+                                                ? "border-primary shadow-md ring-2 ring-primary/20"
+                                                : "border-border hover:border-primary/50"
                                                 } focus:outline-none focus:ring-2 focus:ring-primary`}
                                             onClick={() => setMainImageIndex(idx)}
                                         >
@@ -232,40 +241,50 @@ export default function ProductDetail() {
                             </div>
                         </div>
 
-                        <div className="md:col-span-2">
-                            <div className="space-y-4">
-                                <div>
-                                    <h1 className="text-2xl font-bold text-foreground leading-tight mb-2">{product.name}</h1>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <Badge variant="secondary" className="text-xs">
-                                            {product.categoryName}
-                                        </Badge>
-                                        <span className="text-xs text-muted-foreground">
-                                            Từ <span className="font-semibold text-foreground">{product.supplierName}</span>
-                                        </span>
+                        {/* Product Info */}
+                        <div className="lg:col-span-2">
+                            <div className="space-y-6">
+                                {/* Header Section */}
+                                <div className="space-y-3">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div>
+                                            <h1 className="text-3xl font-bold text-foreground leading-tight mb-2">{product.name}</h1>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <Badge variant="outline" className="text-xs">
+                                                    {product.categoryName}
+                                                </Badge>
+                                                <span className="text-xs text-muted-foreground">
+                                                    Từ <span className="font-semibold text-foreground">{product.supplierName}</span>
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="bg-primary/5 rounded-lg p-3 border border-primary/20">
-                                    <div className="text-xs text-muted-foreground mb-1">Giá</div>
-                                    <div className="text-2xl font-bold text-primary">
+                                {/* Price Section */}
+                                <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl p-4 border border-primary/20">
+                                    <div className="text-xs text-muted-foreground font-medium mb-1">Giá</div>
+                                    <div className="text-3xl font-bold text-primary">
                                         {currentPrice > 0 ? new Intl.NumberFormat("vi-VN").format(currentPrice) : priceText}
-                                        <span className="text-sm ml-1">VND</span>
                                     </div>
+                                    <div className="text-xs text-muted-foreground mt-2">VND</div>
                                 </div>
 
+                                {/* Description */}
                                 {product.description && (
-                                    <div>
-                                        <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
+                                    <div className="space-y-2">
+                                        <h3 className="font-semibold text-sm text-foreground">Mô tả</h3>
+                                        <p className="text-sm text-foreground/70 leading-relaxed line-clamp-4">{product.description}</p>
                                     </div>
                                 )}
 
                                 <Separator className="my-2" />
 
+                                {/* Variants Selection */}
                                 {product.productVariants && product.productVariants.length > 0 && (
-                                    <div>
-                                        <h3 className="font-semibold text-foreground mb-2 text-sm">Chọn biến thể</h3>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div className="space-y-3">
+                                        <h3 className="font-semibold text-sm text-foreground">Chọn biến thể</h3>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                             {product.productVariants.map((v) => {
                                                 const selected = selectedVariantId === v.id
                                                 return (
@@ -276,8 +295,8 @@ export default function ProductDetail() {
                                                             setSelectedVariantName(v.name)
                                                             setQuantity(1)
                                                         }}
-                                                        className={`p-3 rounded-lg border-2 transition-all text-left group text-sm ${selected
-                                                            ? "border-primary bg-primary/5"
+                                                        className={`p-3 rounded-lg border-2 transition-all text-left group text-xs ${selected
+                                                            ? "border-primary bg-primary/5 shadow-sm"
                                                             : "border-border hover:border-primary/50 hover:bg-secondary/30"
                                                             }`}
                                                     >
@@ -294,51 +313,57 @@ export default function ProductDetail() {
                                     </div>
                                 )}
 
-                                <div className="space-y-2 pt-1">
-                                    <div>
-                                        <label className="text-xs font-medium text-foreground mb-1 block">Số lượng</label>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                                className="px-2 py-1 border border-border rounded-md hover:bg-secondary transition-colors text-sm"
-                                                aria-label="Giảm số lượng"
-                                            >
-                                                −
-                                            </button>
-                                            <Input
-                                                type="number"
-                                                min={1}
-                                                value={quantity}
-                                                onChange={(e) => setQuantity(Math.max(1, Number(e.target.value || 1)))}
-                                                className="flex-1 text-center h-8 text-sm"
-                                            />
-                                            <button
-                                                onClick={() => setQuantity(quantity + 1)}
-                                                className="px-2 py-1 border border-border rounded-md hover:bg-secondary transition-colors text-sm"
-                                                aria-label="Tăng số lượng"
-                                            >
-                                                +
-                                            </button>
-                                        </div>
+                                {/* Quantity Selection */}
+                                <div className="space-y-3">
+                                    <label className="text-xs font-semibold text-foreground block">Số lượng</label>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                            className="px-3 py-2 border border-border rounded-lg hover:bg-secondary transition-colors text-sm font-medium"
+                                            aria-label="Giảm số lượng"
+                                        >
+                                            −
+                                        </button>
+                                        <Input
+                                            type="number"
+                                            min={1}
+                                            value={quantity}
+                                            onChange={(e) => setQuantity(Math.max(1, Number(e.target.value || 1)))}
+                                            className="flex-1 text-center h-10 text-sm font-medium"
+                                        />
+                                        <button
+                                            onClick={() => setQuantity(quantity + 1)}
+                                            className="px-3 py-2 border border-border rounded-lg hover:bg-secondary transition-colors text-sm font-medium"
+                                            aria-label="Tăng số lượng"
+                                        >
+                                            +
+                                        </button>
                                     </div>
+                                </div>
 
+                                {/* Action Buttons */}
+                                <div className="grid grid-cols-2 gap-3 pt-4">
                                     <Button
                                         onClick={handleBuyNow}
                                         disabled={isPlacingOrder}
-                                        size="sm"
-                                        className="w-full bg-primary hover:bg-primary/90 h-10 text-sm font-semibold"
+                                        size="lg"
+                                        className="bg-primary hover:bg-primary/90 gap-2 h-11"
                                     >
                                         {isPlacingOrder ? (
                                             <>
-                                                <Loader2 className="animate-spin mr-2 h-4 w-4" />
-                                                Đang xử lý...
+                                                <Loader2 className="animate-spin h-4 w-4" />
+                                                Xử lý...
                                             </>
                                         ) : (
                                             <>
-                                                <Package className="mr-2 h-4 w-4" />
+                                                <ShoppingCart className="h-4 w-4" />
                                                 Mua ngay
                                             </>
                                         )}
+                                    </Button>
+                                    <Button variant="outline" size="lg" className="gap-2 h-11 bg-transparent">
+                                        <Package className="h-4 w-4" />
+                                        Thêm vào giỏ
                                     </Button>
                                 </div>
                             </div>
@@ -346,6 +371,18 @@ export default function ProductDetail() {
                     </div>
                 )}
 
+                {/* Reviews Section */}
+                {product && (
+                    <div className="mt-12 pt-8 border-t border-border/50">
+                        <ProductReviews
+                            productId={product.id}
+                            productBoatyardId={(product as any).boatyardId || (product as any).boatyard?.id || undefined}
+                            productAccountId={(product as any).accountId || (product as any).boatyardAccountId || undefined}
+                        />
+                    </div>
+                )}
+
+                {/* Order Confirmation Modal */}
                 {showOrderModal && orderPreview && (
                     <AlertDialog open={showOrderModal} onOpenChange={(o) => setShowOrderModal(o)}>
                         <AlertDialogContent className="max-w-md">
@@ -356,12 +393,12 @@ export default function ProductDetail() {
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <div className="space-y-3 py-4">
-                                <div className="bg-muted/50 rounded-lg p-2 space-y-1">
-                                    <div className="flex justify-between text-xs">
+                                <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                                    <div className="flex justify-between text-sm">
                                         <span className="text-muted-foreground">Số lượng mục:</span>
                                         <span className="font-medium">{orderPreview.orderItems.length}</span>
                                     </div>
-                                    <div className="flex justify-between text-xs">
+                                    <div className="flex justify-between text-sm">
                                         <span className="text-muted-foreground">Tổng số lượng:</span>
                                         <span className="font-medium">
                                             {orderPreview.orderItems.reduce((s, it) => s + (it.quantity || 0), 0)}
@@ -369,21 +406,21 @@ export default function ProductDetail() {
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="text-xs font-medium text-foreground mb-1 block">Địa chỉ giao hàng (bắt buộc)</label>
+                                    <label className="text-xs font-medium text-foreground mb-2 block">Địa chỉ giao hàng (bắt buộc)</label>
                                     <Input
                                         value={paymentAddress}
                                         onChange={(e) => setPaymentAddress(e.target.value)}
-                                        placeholder="Nhập địa chỉ giao hàng"
-                                        className="w-full text-sm h-8"
+                                        placeholder="Nhập địa chỉ giao hàng đầy đủ"
+                                        className="w-full text-sm h-10"
                                     />
                                 </div>
                             </div>
                             <AlertDialogFooter>
-                                <AlertDialogCancel className="text-xs h-8">Hủy</AlertDialogCancel>
+                                <AlertDialogCancel className="text-xs h-9">Hủy</AlertDialogCancel>
                                 <AlertDialogAction
                                     onClick={confirmCreateOrder}
                                     disabled={isPlacingOrder || !paymentAddress.trim()}
-                                    className="bg-primary hover:bg-primary/90 text-xs h-8"
+                                    className="bg-primary hover:bg-primary/90 text-xs h-9"
                                 >
                                     {isPlacingOrder ? "Đang xử lý..." : "Xác nhận"}
                                 </AlertDialogAction>

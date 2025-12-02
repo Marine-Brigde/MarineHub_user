@@ -1,6 +1,6 @@
 // src/api/repairShop/revenueApi.ts
 import axiosClient from "../axiosClient"
-import type { RevenuesResponse, MonthlyRevenue } from "@/types/repairShop/revenue"
+import type { RevenuesResponse, } from "@/types/repairShop/revenue"
 
 // GET /v1/revenues
 export const getRevenuesApi = async (params?: { startDate?: string; endDate?: string }) => {

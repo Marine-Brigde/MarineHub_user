@@ -407,14 +407,40 @@ export default function SupplierOrders() {
                             ) : detailError ? (
                                 <div className="text-destructive">{detailError}</div>
                             ) : selectedOrder ? (
-                                <div className="space-y-3">
-                                    <div className="flex justify-between">
-                                        <div className="font-medium">Mã đơn hàng</div>
-                                        <div className="truncate font-mono text-sm">#{getShortId(selectedOrder.id)}</div>
+                                <div className="space-y-4">
+                                    <div className="space-y-1">
+                                        <div className="text-sm text-muted-foreground">Mã đơn hàng</div>
+                                        <div className="text-lg font-semibold font-mono">#{getShortId(selectedOrder.id)}</div>
                                     </div>
+                                    
+                                    <Separator />
+                                    
+                                    {/* Tên đơn hàng / Tên khách hàng */}
+                                    {(selectedOrder.shipName || selectedOrder.boatyardName) && (
+                                        <>
+                                            <div className="space-y-1">
+                                                <div className="text-sm text-muted-foreground">Tên đơn hàng</div>
+                                                <div className="text-base font-semibold">
+                                                    {selectedOrder.shipName || selectedOrder.boatyardName || '-'}
+                                                </div>
+                                            </div>
+                                            <Separator />
+                                        </>
+                                    )}
+                                    
+                                    {selectedOrder.orderCode && (
+                                        <>
+                                            <div className="space-y-1">
+                                                <div className="text-sm text-muted-foreground">Mã code</div>
+                                                <div className="text-base font-medium">{selectedOrder.orderCode}</div>
+                                            </div>
+                                            <Separator />
+                                        </>
+                                    )}
+                                    
                                     <div className="flex flex-col gap-2">
                                         <div className="flex items-center justify-between">
-                                            <div className="font-medium">Trạng thái</div>
+                                            <div className="text-sm text-muted-foreground">Trạng thái</div>
                                             <div>{renderStatus(selectedOrder.status)}</div>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -432,9 +458,12 @@ export default function SupplierOrders() {
                                             </Button>
                                         </div>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <div className="font-medium">Tổng tiền</div>
-                                        <div className="font-semibold text-primary">{selectedOrder.totalAmount?.toLocaleString('vi-VN') || 0} đ</div>
+                                    
+                                    <Separator />
+                                    
+                                    <div className="flex justify-between items-center">
+                                        <div className="text-sm text-muted-foreground">Tổng tiền</div>
+                                        <div className="text-xl font-bold text-primary">{selectedOrder.totalAmount?.toLocaleString('vi-VN') || 0} đ</div>
                                     </div>
                                 </div>
                             ) : (

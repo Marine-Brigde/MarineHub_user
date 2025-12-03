@@ -1,6 +1,6 @@
 "use client"
 
-import { Anchor, BarChart3, Package, ShoppingCart, MapPin, MessageSquare, Settings, LogOut, User, AlertCircle } from "lucide-react"
+import { Anchor, BarChart3, Package, ShoppingCart, MessageSquare, Settings, LogOut, User, AlertCircle } from "lucide-react"
 import { useLocation } from "react-router-dom"
 
 import {
@@ -36,11 +36,6 @@ const menuItems = [
         title: "Đơn hàng",
         url: "/supplier/orders",
         icon: ShoppingCart,
-    },
-    {
-        title: "Giao hàng",
-        url: "/supplier/delivery",
-        icon: MapPin,
     },
     {
         title: "Đánh giá & Phản hồi",

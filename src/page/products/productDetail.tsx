@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { Loader2, ArrowLeft, Package, ShoppingCart } from "lucide-react"
+import { Loader2, ArrowLeft, ShoppingCart } from "lucide-react"
 import Header from "@/components/common/header"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"

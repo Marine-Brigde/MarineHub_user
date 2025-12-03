@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { Loader2, ArrowLeft, Package, ShoppingCart } from "lucide-react"
 import Header from "@/components/common/header"
@@ -22,6 +22,7 @@ import {
 import { getProductByIdApi } from "@/api/Product/productApi"
 import { createOrderApi } from "@/api/Order/orderApi"
 import { createPaymentApi } from "@/api/payment/paymentApi"
+import { getBoatyardByIdApi, getBoatyardDetailApi } from "@/api/boatyardApi/boatyardApi"
 import type { CreateOrderRequest } from "@/types/Order/order"
 import type { Product } from "@/types/Product/product"
 import ProductReviews from "@/components/product/reviews"
@@ -40,6 +41,9 @@ export default function ProductDetail() {
     const [showOrderModal, setShowOrderModal] = useState(false)
     const [orderPreview, setOrderPreview] = useState<CreateOrderRequest | null>(null)
     const [paymentAddress, setPaymentAddress] = useState<string>("")
+    const [suggestions, setSuggestions] = useState<any[]>([])
+    const [suggestionError, setSuggestionError] = useState<string>("")
+    const debounceRef = useRef<any>(null)
 
     useEffect(() => {
         if (product?.productVariants && product.productVariants.length > 0 && !selectedVariantId) {
@@ -128,6 +132,71 @@ export default function ProductDetail() {
         }
         load()
     }, [id])
+
+    // Prefill address when opening the order modal: prefer current user's boatyard detail
+    useEffect(() => {
+        const tryPrefill = async () => {
+            if (!showOrderModal) return
+            if (!product) return
+            try {
+                // First, try current user's boatyard detail (preferred)
+                try {
+                    const mine = await getBoatyardDetailApi()
+                    if (mine?.status === 200 && mine.data) {
+                        const addr = (mine.data as any).address || (mine.data as any).Address || ""
+                        if (addr && addr.trim()) {
+                            setPaymentAddress(addr)
+                            return
+                        }
+                    }
+                } catch (e) {
+                    // ignore and try by product's boatyard id next
+                }
+
+                // Next, try to get boatyard by id from the product (if available)
+                const boatyardId = (product as any).boatyardId || (product as any).boatyard?.id || (product as any).supplierId
+                if (boatyardId) {
+                    const res = await getBoatyardByIdApi(boatyardId)
+                    if (res?.status === 200 && res.data) {
+                        const addr = (res.data as any).address || (res.data as any).Address || ""
+                        if (addr && addr.trim()) setPaymentAddress(addr)
+                    }
+                }
+            } catch (err) {
+                console.warn("Address prefill error", err)
+            }
+        }
+
+        tryPrefill()
+    }, [showOrderModal, product])
+
+    const fetchSuggestions = async (input: string) => {
+        setSuggestionError("")
+        if (!input || input.length < 3) {
+            setSuggestions([])
+            return
+        }
+        const API_KEY = import.meta.env.VITE_GOONG_API_KEY as string
+        const apiLink = `https://rsapi.goong.io/place/autocomplete?api_key=${API_KEY}&input=${encodeURIComponent(input)}`
+        try {
+            const response = await fetch(apiLink)
+            const data = await response.json()
+            if (data.predictions) setSuggestions(data.predictions)
+            else setSuggestions([])
+        } catch (err) {
+            console.error("Error fetching autocomplete:", err)
+            setSuggestionError("Không thể tải gợi ý địa chỉ")
+            setSuggestions([])
+        }
+    }
+
+    const handleAddressChange = (value: string) => {
+        setPaymentAddress(value)
+        if (debounceRef.current) clearTimeout(debounceRef.current)
+        debounceRef.current = setTimeout(() => {
+            fetchSuggestions(value)
+        }, 400)
+    }
 
     const images =
         product?.productImages && product.productImages.length > 0
@@ -342,7 +411,7 @@ export default function ProductDetail() {
                                 </div>
 
                                 {/* Action Buttons */}
-                                <div className="grid grid-cols-2 gap-3 pt-4">
+                                <div className="grid grid-cols-1 gap-3 pt-4">
                                     <Button
                                         onClick={handleBuyNow}
                                         disabled={isPlacingOrder}
@@ -356,15 +425,12 @@ export default function ProductDetail() {
                                             </>
                                         ) : (
                                             <>
-                                                <ShoppingCart className="h-4 w-4" />
+                                                <ShoppingCart className="h-4 w-4 " />
                                                 Mua ngay
                                             </>
                                         )}
                                     </Button>
-                                    <Button variant="outline" size="lg" className="gap-2 h-11 bg-transparent">
-                                        <Package className="h-4 w-4" />
-                                        Thêm vào giỏ
-                                    </Button>
+
                                 </div>
                             </div>
                         </div>
@@ -407,12 +473,33 @@ export default function ProductDetail() {
                                 </div>
                                 <div>
                                     <label className="text-xs font-medium text-foreground mb-2 block">Địa chỉ giao hàng (bắt buộc)</label>
-                                    <Input
-                                        value={paymentAddress}
-                                        onChange={(e) => setPaymentAddress(e.target.value)}
-                                        placeholder="Nhập địa chỉ giao hàng đầy đủ"
-                                        className="w-full text-sm h-10"
-                                    />
+                                    <div className="relative">
+                                        <Input
+                                            value={paymentAddress}
+                                            onChange={(e) => handleAddressChange(e.target.value)}
+                                            placeholder="Nhập địa chỉ giao hàng đầy đủ"
+                                            className="w-full text-sm h-10"
+                                        />
+                                        {/* Suggestion dropdown: absolutely positioned to avoid modal overflow */}
+                                        {suggestionError && <div className="text-red-600 text-sm mt-2">{suggestionError}</div>}
+                                        {suggestions && suggestions.length > 0 && (
+                                            <div className="absolute z-50 left-0 right-0 mt-1 bg-popover border border-border rounded shadow max-h-40 overflow-y-auto">
+                                                {suggestions.map((s) => (
+                                                    <button
+                                                        key={s.place_id}
+                                                        type="button"
+                                                        className="w-full text-left px-3 py-2 hover:bg-muted/50 text-sm"
+                                                        onClick={() => {
+                                                            setPaymentAddress(s.description)
+                                                            setSuggestions([])
+                                                        }}
+                                                    >
+                                                        {s.description}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             <AlertDialogFooter>

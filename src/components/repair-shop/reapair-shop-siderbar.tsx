@@ -1,5 +1,5 @@
-import { useLocation } from "react-router-dom"
-import { Anchor, BarChart3, Wrench, Calendar, Ship, MapPin, FileText, Settings, LogOut, User, AlertCircle, ShoppingCart } from "lucide-react"
+import { useLocation, } from "react-router-dom"
+import { Anchor, BarChart3, Wrench, Calendar, Ship, MapPin, Settings, LogOut, User, ShoppingCart } from "lucide-react"
 
 import {
     Sidebar,
@@ -12,7 +12,9 @@ import {
     SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { getBoatyardDetailApi } from "@/api/boatyardApi/boatyardApi"
 import { Link } from "react-router-dom"
+import { useEffect, useState } from "react"
 
 const menuItems = [
     {
@@ -45,20 +47,40 @@ const menuItems = [
         url: "/repair-shop/orders",
         icon: ShoppingCart,
     },
-    {
-        title: "Báo cáo tiến độ",
-        url: "/repair-shop/reports",
-        icon: FileText,
-    },
-    {
-        title: "Khiếu nại từ tàu",
-        url: "/repair-shop/complaints",
-        icon: AlertCircle,
-    },
+    // {
+    //     title: "Báo cáo tiến độ",
+    //     url: "/repair-shop/reports",
+    //     icon: FileText,
+    // },
+    // {
+    //     title: "Khiếu nại từ tàu",
+    //     url: "/repair-shop/complaints",
+    //     icon: AlertCircle,
+    // },
 ]
 
 export function RepairShopSidebar() {
     const location = useLocation();
+    const [boatyard, setBoatyard] = useState<any | null>(null)
+
+    useEffect(() => {
+        let mounted = true
+        const load = async () => {
+            try {
+                const res = await getBoatyardDetailApi()
+                if (!mounted) return
+                if (res?.status === 200 && res.data) {
+                    setBoatyard(res.data)
+                }
+            } catch (err) {
+                console.warn("Failed to load boatyard detail", err)
+            }
+        }
+        load()
+        return () => {
+            mounted = false
+        }
+    }, [])
 
     return (
         <Sidebar className="min-w-[270px]">
@@ -134,12 +156,12 @@ export function RepairShopSidebar() {
                     <SidebarMenuItem>
                         <div className="flex items-center gap-3 px-4 py-4">
                             <Avatar className="h-10 w-10">
-                                <AvatarImage src="/placeholder.svg?key=repair" />
-                                <AvatarFallback>XS</AvatarFallback>
+                                <AvatarImage src={boatyard?.avatarUrl || "/placeholder.svg?key=repair"} />
+                                <AvatarFallback>{(boatyard?.name || "XS").slice(0, 2).toUpperCase()}</AvatarFallback>
                             </Avatar>
                             <div className="flex flex-col flex-1 min-w-0">
-                                <span className="text-base font-medium text-sidebar-foreground truncate">Xưởng Sửa chữa Hải Phòng</span>
-                                <span className="text-sm text-sidebar-foreground/70 truncate">repair@haiphong.com</span>
+                                <span className="text-base font-medium text-sidebar-foreground truncate">{boatyard?.name || "Xưởng Sửa chữa"}</span>
+                                <span className="text-sm text-sidebar-foreground/70 truncate">{boatyard?.email || "—"}</span>
                             </div>
                         </div>
                     </SidebarMenuItem>

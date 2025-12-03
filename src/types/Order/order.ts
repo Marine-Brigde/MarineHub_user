@@ -14,6 +14,11 @@ export interface OrderResponseData {
     id: string
     totalAmount: number
     status: string
+    shipId?: string | null
+    shipName?: string | null
+    boatyardId?: string | null
+    boatyardName?: string | null
+    phone?: string | null
 }
 
 export type OrderStatus = 'Pending' | 'Approved' | 'Delivered' | 'Completed' | 'Rejected'

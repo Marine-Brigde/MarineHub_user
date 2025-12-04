@@ -29,20 +29,17 @@ import {
 import { getBookingsApi } from '@/api/booking/bookingApi'
 import type { Booking } from '@/types/Booking/booking'
 
+// Backend booking status enum: Pending | Confirmed | Cancelled
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
     pending: { bg: "bg-yellow-100", text: "text-yellow-700" },
-    approved: { bg: "bg-blue-100", text: "text-blue-700" },
-    completed: { bg: "bg-green-100", text: "text-green-700" },
+    confirmed: { bg: "bg-blue-100", text: "text-blue-700" },
     cancelled: { bg: "bg-red-100", text: "text-red-700" },
-    rejected: { bg: "bg-red-100", text: "text-red-700" },
 }
 
 const STATUS_LABELS: Record<string, string> = {
     pending: "Chờ duyệt",
-    approved: "Đã duyệt",
-    completed: "Hoàn tất",
+    confirmed: "Đã xác nhận",
     cancelled: "Đã hủy",
-    rejected: "Bị từ chối",
 }
 
 export default function RepairShopBookingsPage() {
@@ -63,7 +60,7 @@ export default function RepairShopBookingsPage() {
             const items = data?.items ?? []
             const totalItems = data?.total ?? items.length
             const totalPagesCount = data?.totalPages ?? Math.ceil(totalItems / pageSize)
-            
+
             setBookings(items)
             setTotal(totalItems)
             setTotalPages(totalPagesCount)

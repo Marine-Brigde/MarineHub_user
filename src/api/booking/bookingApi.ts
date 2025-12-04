@@ -9,6 +9,9 @@ export const getBookingsApi = async (params?: GetBookingsParams) => {
     if (params?.size) query.size = params.size
     if (params?.sortBy) query.sortBy = params.sortBy
     if (params?.isAsc !== undefined) query.isAsc = params.isAsc
+    // Add optional date filters if provided
+    if ((params as any)?.startDate) query.startDate = (params as any).startDate
+    if ((params as any)?.endDate) query.endDate = (params as any).endDate
 
     const response = await axiosClient.get<BaseResponse<BookingListResponse>>('/v1/bookings', { params: query })
     return response.data

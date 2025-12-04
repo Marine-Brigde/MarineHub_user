@@ -48,8 +48,7 @@ export function LoginForm({ onLoadingChange }: LoginFormProps) {
                 case "Boatyard":
                     navigate("/");
                     break;
-                default:
-                    navigate("/");
+
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {

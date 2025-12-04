@@ -52,6 +52,8 @@ export interface GetBookingsParams {
     size?: number
     sortBy?: string
     isAsc?: boolean
+    startDate?: string
+    endDate?: string
 }
 
 export interface BaseResponse<T> {

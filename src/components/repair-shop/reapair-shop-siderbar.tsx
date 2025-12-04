@@ -1,5 +1,5 @@
 import { useLocation, } from "react-router-dom"
-import { Anchor, BarChart3, Wrench, Calendar, Ship, MapPin, Settings, LogOut, User, ShoppingCart } from "lucide-react"
+import { Anchor, BarChart3, Wrench, Calendar, MapPin, LogOut, User, ShoppingCart, Home } from "lucide-react"
 
 import {
     Sidebar,
@@ -18,6 +18,11 @@ import { useEffect, useState } from "react"
 
 const menuItems = [
     {
+        title: "Trang chủ",
+        url: "/",
+        icon: Home,
+    },
+    {
         title: "Tổng quan",
         url: "/repair-shop/dashboard",
         icon: BarChart3,
@@ -32,11 +37,11 @@ const menuItems = [
         url: "/repair-shop/bookings",
         icon: Calendar,
     },
-    {
-        title: "Theo dõi tàu",
-        url: "/repair-shop/tracking",
-        icon: Ship,
-    },
+    // {
+    //     title: "Theo dõi tàu",
+    //     url: "/repair-shop/tracking",
+    //     icon: Ship,
+    // },
     {
         title: "Bến đậu tàu",
         url: "/repair-shop/dock",
@@ -97,7 +102,12 @@ export function RepairShopSidebar() {
             <SidebarContent>
                 <SidebarMenu className="gap-2 mt-4">
                     {menuItems.map((item) => {
-                        const isActive = location.pathname.startsWith(item.url);
+                        let isActive = false;
+                        if (item.url === "/") {
+                            isActive = location.pathname === "/";
+                        } else {
+                            isActive = location.pathname.startsWith(item.url);
+                        }
                         return (
                             <SidebarMenuItem key={item.title} className="mb-2">
                                 <SidebarMenuButton
@@ -142,10 +152,10 @@ export function RepairShopSidebar() {
                             className={`flex items-center gap-4 px-5 py-3 rounded-lg text-base transition-all
                                 ${location.pathname.startsWith("/repair-shop/settings") ? "bg-primary/10 text-primary font-semibold" : "hover:bg-primary/10"}`}
                         >
-                            <Link to="/repair-shop/settings">
+                            {/* <Link to="/repair-shop/settings">
                                 <Settings className="h-6 w-6" />
                                 <span>Cài đặt</span>
-                            </Link>
+                            </Link> */}
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>

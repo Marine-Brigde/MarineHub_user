@@ -33,6 +33,8 @@ export interface BookingDetailResponse {
     id: string
     status: string
     totalAmount: number
+    longitude?: string
+    latitude?: string
     type?: number
     startTime?: string
     endTime?: string

@@ -32,22 +32,21 @@ import {
 } from '@/components/ui/breadcrumb'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { getBookingByIdApi } from '@/api/booking/bookingApi'
+import { getBoatyardDetailApi } from '@/api/boatyardApi/boatyardApi'
+import RouteMap from '@/components/map/RouteMap'
 import type { BookingDetailResponse } from '@/types/Booking/booking'
 
+// Backend booking status enum: Pending | Confirmed | Cancelled
 const STATUS_COLORS: Record<string, { bg: string; text: string; icon: typeof CheckCircle }> = {
     pending: { bg: "bg-yellow-100", text: "text-yellow-700", icon: AlertCircle },
-    approved: { bg: "bg-blue-100", text: "text-blue-700", icon: CheckCircle },
-    completed: { bg: "bg-green-100", text: "text-green-700", icon: CheckCircle },
+    confirmed: { bg: "bg-blue-100", text: "text-blue-700", icon: CheckCircle },
     cancelled: { bg: "bg-red-100", text: "text-red-700", icon: XCircle },
-    rejected: { bg: "bg-red-100", text: "text-red-700", icon: XCircle },
 }
 
 const STATUS_LABELS: Record<string, string> = {
     pending: "Chờ duyệt",
-    approved: "Đã duyệt",
-    completed: "Hoàn tất",
+    confirmed: "Đã xác nhận",
     cancelled: "Đã hủy",
-    rejected: "Bị từ chối",
 }
 
 export default function RepairShopBookingDetailPage() {
@@ -56,6 +55,9 @@ export default function RepairShopBookingDetailPage() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [booking, setBooking] = useState<BookingDetailResponse | null>(null)
+    const [showRoute, setShowRoute] = useState(false)
+    const [boatyardLocation, setBoatyardLocation] = useState<{ lat: number; lng: number } | null>(null)
+    const [loadingRoute, setLoadingRoute] = useState(false)
 
     useEffect(() => {
         if (!id) return
@@ -98,6 +100,29 @@ export default function RepairShopBookingDetailPage() {
                 {label}
             </Badge>
         )
+    }
+
+    const handleShowRoute = async () => {
+        if (!booking) return
+        setShowRoute((s) => !s)
+        if (boatyardLocation || !showRoute) {
+            // If already have location or we're opening, fetch boatyard detail
+            try {
+                setLoadingRoute(true)
+                const res = await getBoatyardDetailApi()
+                if (res?.status === 200 && res.data) {
+                    const lat = Number(res.data.latitude)
+                    const lng = Number(res.data.longitude)
+                    if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+                        setBoatyardLocation({ lat, lng })
+                    }
+                }
+            } catch (err) {
+                console.warn('Failed to load boatyard detail', err)
+            } finally {
+                setLoadingRoute(false)
+            }
+        }
     }
 
     return (
@@ -268,6 +293,26 @@ export default function RepairShopBookingDetailPage() {
                                     </div>
                                     <p className="text-sm font-semibold pl-6">{booking.dockSlotName || '-'}</p>
                                 </div>
+                                {/* Track route button + map (visible when confirmed) */}
+                                {booking.status && booking.status.toLowerCase() === 'confirmed' && (
+                                    <div className="mt-4 pl-6">
+                                        <div className="flex items-center gap-2">
+                                            <Button size="sm" onClick={handleShowRoute} className="gap-2">
+                                                {showRoute ? 'Ẩn hành trình' : 'Theo dõi hành trình'}
+                                            </Button>
+                                            {loadingRoute && <span className="text-sm text-muted-foreground">Đang tải vị trí xưởng...</span>}
+                                        </div>
+                                        {showRoute && (
+                                            <div className="mt-3">
+                                                <RouteMap
+                                                    start={booking.latitude && booking.longitude ? { lat: Number(booking.latitude), lng: Number(booking.longitude) } : null}
+                                                    end={boatyardLocation}
+                                                    animate={true}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
 

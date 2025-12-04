@@ -1,6 +1,6 @@
 "use client"
 
-import { Anchor, BarChart3, Package, ShoppingCart, MessageSquare, Settings, LogOut, User, AlertCircle } from "lucide-react"
+import { Anchor, BarChart3, Package, ShoppingCart, MessageSquare, LogOut, User } from "lucide-react"
 import { useLocation } from "react-router-dom"
 
 import {
@@ -42,11 +42,11 @@ const menuItems = [
         url: "/supplier/reviews",
         icon: MessageSquare,
     },
-    {
-        title: "Khiếu nại từ tàu",
-        url: "/supplier/complaints",
-        icon: AlertCircle,
-    },
+    // {
+    //     title: "Khiếu nại từ tàu",
+    //     url: "/supplier/complaints",
+    //     icon: AlertCircle,
+    // },
 ]
 
 export function SupplierSidebar() {
@@ -112,10 +112,10 @@ export function SupplierSidebar() {
                             className={`flex items-center gap-4 px-5 py-3 rounded-lg text-base transition-all
                                 ${location.pathname.startsWith("/supplier/settings") ? "bg-primary/10 text-primary font-semibold" : "hover:bg-primary/10"}`}
                         >
-                            <Link to="/supplier/settings">
+                            {/* <Link to="/supplier/settings">
                                 <Settings className="h-6 w-6" />
                                 <span>Cài đặt</span>
-                            </Link>
+                            </Link> */}
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>

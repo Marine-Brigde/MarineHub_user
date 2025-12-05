@@ -15,7 +15,7 @@ export function LoadingSpinner() {
                 {/* Hình GIF loading */}
                 <div className="animate-bounce">
                     <img
-                        src="public/image/unnamed_wipe_bg (1).png"
+                        src="/image/unnamed_wipe_bg (1).png"
                         alt="Loading animation"
                         className="w-48 h-48 object-contain drop-shadow-2xl"
                     />

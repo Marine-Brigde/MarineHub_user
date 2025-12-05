@@ -26,6 +26,7 @@ export default function ProductReviews({ productId, productBoatyardId, productAc
     const [newComment, setNewComment] = useState<string>("")
     const [submitting, setSubmitting] = useState(false)
     const [showForm, setShowForm] = useState(false)
+    const [reviewError, setReviewError] = useState<string | null>(null)
 
     useEffect(() => {
         setLoading(true)
@@ -94,6 +95,7 @@ export default function ProductReviews({ productId, productBoatyardId, productAc
     const handleSubmitReview = async () => {
         if (submitting) return
         setSubmitting(true)
+        setReviewError(null)
         try {
             await createProductReviewApi(productId, { rating: newRating, comment: newComment })
             const refreshed = await getProductReviewsApi(productId)
@@ -113,9 +115,26 @@ export default function ProductReviews({ productId, productBoatyardId, productAc
             setNewRating(5)
             setNewComment("")
             setShowForm(false)
-        } catch (err) {
+        } catch (err: any) {
             console.error("create review failed", err)
-            setError("Không thể tạo đánh giá")
+            // Check for 400 status error = user hasn't purchased the product
+            const statusCode = err?.response?.status || err?.response?.data?.status
+            if (statusCode === 400) {
+                setReviewError("Bạn chưa mua sản phẩm này nên không thể đánh giá")
+            } else {
+                // Get detailed message from API response - try data first, then message
+                let errorMsg = "Không thể tạo đánh giá"
+                if (err?.response?.data?.data) {
+                    errorMsg = err.response.data.data
+                } else if (err?.response?.data?.message) {
+                    errorMsg = err.response.data.message
+                } else if (err?.message) {
+                    errorMsg = err.message
+                }
+                setReviewError(errorMsg)
+            }
+            // Keep form open to show error message
+            setShowForm(true)
         } finally {
             setSubmitting(false)
         }
@@ -217,8 +236,13 @@ export default function ProductReviews({ productId, productBoatyardId, productAc
                         {/* Review Form Section */}
                         {!isOwnBoatyard && (
                             <>
+                                {reviewError && (
+                                    <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 mb-3">
+                                        <p className="text-sm text-destructive">{reviewError}</p>
+                                    </div>
+                                )}
                                 {!showForm ? (
-                                    <Button onClick={() => setShowForm(true)} variant="outline" className="w-full h-10 border-dashed">
+                                    <Button onClick={() => { setShowForm(true); setReviewError(null) }} variant="outline" className="w-full h-10 border-dashed">
                                         <MessageCircle className="mr-2 h-4 w-4" />
                                         Viết đánh giá của bạn
                                     </Button>
@@ -286,7 +310,7 @@ export default function ProductReviews({ productId, productBoatyardId, productAc
                                             >
                                                 {submitting ? "Đang gửi..." : "Gửi đánh giá"}
                                             </Button>
-                                            <Button onClick={() => setShowForm(false)} variant="outline" size="sm" className="flex-1">
+                                            <Button onClick={() => { setShowForm(false); setReviewError(null) }} variant="outline" size="sm" className="flex-1">
                                                 Hủy
                                             </Button>
                                         </div>

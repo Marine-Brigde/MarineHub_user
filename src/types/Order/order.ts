@@ -63,6 +63,8 @@ export interface OrderListResponse {
 export interface GetOrdersParams {
     shipId?: string
     status?: string
+    startDate?: string
+    endDate?: string
     page?: number
     pageSize?: number
     search?: string

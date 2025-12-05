@@ -46,7 +46,7 @@ export default function ProductsPage() {
         try {
             setIsLoading(true)
             setError("")
-            
+
             const response: BaseResponse<ProductListResponse> = await getProductsApi({
                 page,
                 size,
@@ -376,54 +376,50 @@ export default function ProductsPage() {
                         )}
 
                         {/* Pagination */}
-                        {totalPages > 1 && (
-                            <div className="flex items-center justify-between">
-                                <p className="text-sm text-muted-foreground">
-                                    Trang {page} / {totalPages} - Tổng {total} sản phẩm
-                                </p>
-                                <div className="flex gap-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setPage(page - 1)}
-                                        disabled={page === 1 || isLoading}
-                                    >
-                                        Trước
-                                    </Button>
-                                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                        let pageNum: number
-                                        if (totalPages <= 5) {
-                                            pageNum = i + 1
-                                        } else if (page <= 3) {
-                                            pageNum = i + 1
-                                        } else if (page >= totalPages - 2) {
-                                            pageNum = totalPages - 4 + i
-                                        } else {
-                                            pageNum = page - 2 + i
-                                        }
-                                        return (
-                                            <Button
-                                                key={pageNum}
-                                                variant={page === pageNum ? "default" : "outline"}
-                                                size="sm"
-                                                onClick={() => setPage(pageNum)}
-                                                disabled={isLoading}
-                                            >
-                                                {pageNum}
-                                            </Button>
-                                        )
-                                    })}
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setPage(page + 1)}
-                                        disabled={page === totalPages || isLoading}
-                                    >
-                                        Sau
-                                    </Button>
-                                </div>
+                        <div className="flex items-center justify-center py-6 border-t border-border/50">
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setPage(page - 1)}
+                                    disabled={page === 1 || isLoading}
+                                >
+                                    Trước
+                                </Button>
+                                {Array.from({ length: Math.min(5, totalPages > 0 ? totalPages : 1) }, (_, i) => {
+                                    let pageNum: number
+                                    const pagesCount = totalPages > 0 ? totalPages : 1
+                                    if (pagesCount <= 5) {
+                                        pageNum = i + 1
+                                    } else if (page <= 3) {
+                                        pageNum = i + 1
+                                    } else if (page >= pagesCount - 2) {
+                                        pageNum = pagesCount - 4 + i
+                                    } else {
+                                        pageNum = page - 2 + i
+                                    }
+                                    return (
+                                        <Button
+                                            key={pageNum}
+                                            variant={page === pageNum ? "default" : "outline"}
+                                            size="sm"
+                                            onClick={() => setPage(pageNum)}
+                                            disabled={isLoading}
+                                        >
+                                            {pageNum}
+                                        </Button>
+                                    )
+                                })}
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setPage(page + 1)}
+                                    disabled={page === (totalPages > 0 ? totalPages : 1) || isLoading}
+                                >
+                                    Sau
+                                </Button>
                             </div>
-                        )}
+                        </div>
                     </>
                 )}
 

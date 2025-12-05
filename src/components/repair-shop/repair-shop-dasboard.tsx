@@ -121,7 +121,7 @@ export function RepairShopDashboard() {
             {/* Welcome Section */}
             <div className="flex flex-col gap-2">
                 <h1 className="text-3xl font-bold text-foreground">Chào mừng trở lại!</h1>
-                <p className="text-muted-foreground">Theo dõi doanh thu và đơn hàng theo thời gian</p>
+                <p className="text-muted-foreground">Theo dõi doanh thu</p>
             </div>
 
             {/* Charts */}

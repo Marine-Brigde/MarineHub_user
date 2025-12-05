@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { useToast } from "@/hooks/use-toast"
 import {
     AlertDialog,
     AlertDialogContent,
@@ -30,6 +31,7 @@ import ProductReviews from "@/components/product/reviews"
 export default function ProductDetail() {
     const { id } = useParams()
     const navigate = useNavigate()
+    const { toast } = useToast()
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState("")
     const [product, setProduct] = useState<Product | null>(null)
@@ -55,7 +57,11 @@ export default function ProductDetail() {
 
     const handleBuyNow = async () => {
         if (!selectedVariantId) {
-            window.alert("Vui lòng chọn biến thể trước khi đặt hàng")
+            toast({
+                title: "Thông báo",
+                description: "Vui lòng chọn biến thể trước khi đặt hàng",
+                variant: "destructive",
+            })
             return
         }
 
@@ -81,7 +87,11 @@ export default function ProductDetail() {
                 const orderId = res.data?.id
                 try {
                     if (!paymentAddress || !paymentAddress.trim()) {
-                        window.alert("Vui lòng nhập địa chỉ giao hàng trước khi thanh toán")
+                        toast({
+                            title: "Thông báo",
+                            description: "Vui lòng nhập địa chỉ giao hàng trước khi thanh toán",
+                            variant: "destructive",
+                        })
                         setIsPlacingOrder(false)
                         return
                     }
@@ -93,18 +103,30 @@ export default function ProductDetail() {
                 } catch (payErr) {
                     console.error("Payment API error", payErr)
                 }
-                window.alert("Tạo đơn hàng thành công (ID: " + (orderId || "") + ")")
+                toast({
+                    title: "Thành công",
+                    description: `Tạo đơn hàng thành công (ID: ${orderId || ""})`,
+                    variant: "success",
+                })
                 setSelectedVariantId(null)
                 setSelectedVariantName(undefined)
                 setQuantity(1)
                 setShowOrderModal(false)
             } else {
-                window.alert("Tạo đơn hàng thất bại: " + (res?.message || "Không xác định"))
+                toast({
+                    title: "Lỗi",
+                    description: res?.message || "Không xác định",
+                    variant: "destructive",
+                })
             }
         } catch (err: any) {
             console.error("Order error", err)
             const message = err?.message || err?.response?.data?.message || "Lỗi khi tạo đơn hàng"
-            window.alert(message)
+            toast({
+                title: "Lỗi",
+                description: message,
+                variant: "destructive",
+            })
         } finally {
             setIsPlacingOrder(false)
         }

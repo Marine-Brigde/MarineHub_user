@@ -18,7 +18,17 @@ axiosClient.interceptors.request.use((config) => {
 
 axiosClient.interceptors.response.use(
     (response) => response,
-    (error) => Promise.reject(error.response?.data || error.message)
+    (error) => {
+        // Preserve the full error object with status code
+        const errorObj = {
+            response: {
+                status: error.response?.status,
+                data: error.response?.data
+            },
+            message: error.message
+        }
+        return Promise.reject(errorObj)
+    }
 )
 
 export default axiosClient

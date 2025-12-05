@@ -20,6 +20,8 @@ export const getOrdersApi = async (params?: GetOrdersParams) => {
     const query: Record<string, any> = {}
     if (params?.shipId) query.ShipId = params.shipId
     if (params?.status) query.Status = params.status
+    if (params?.startDate) query.StartDate = params.startDate
+    if (params?.endDate) query.EndDate = params.endDate
     if (params?.page) query.Page = params.page
     if (params?.pageSize) query.PageSize = params.pageSize
     if (params?.search) query.Search = params.search

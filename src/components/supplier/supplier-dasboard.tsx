@@ -3,7 +3,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -13,40 +12,123 @@ import {
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Package, ShoppingCart, DollarSign, MapPin, Clock, Star, Eye, Edit, Truck } from "lucide-react"
+import { Loader2 } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { useState, useEffect } from "react"
+import { getOrdersApi } from "@/api/Order/orderApi"
+import { getRevenuesApi } from "@/api/repairShop/revenueApi"
+import type { OrderResponseData } from "@/types/Order/order"
+import type { MonthlyRevenue } from "@/types/repairShop/revenue"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LineChart, Line } from "recharts"
-
-const revenueData = [
-    { month: "T1", revenue: 45000 },
-    { month: "T2", revenue: 52000 },
-    { month: "T3", revenue: 48000 },
-    { month: "T4", revenue: 61000 },
-    { month: "T5", revenue: 55000 },
-    { month: "T6", revenue: 67000 },
-]
-
-const orderData = [
-    { month: "T1", orders: 24 },
-    { month: "T2", orders: 31 },
-    { month: "T3", orders: 28 },
-    { month: "T4", orders: 35 },
-    { month: "T5", orders: 32 },
-    { month: "T6", orders: 41 },
-]
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
 
 const chartConfig = {
-    revenue: {
-        label: "Doanh thu",
-        color: "hsl(var(--chart-1))",
-    },
     orders: {
         label: "Đơn hàng",
+        color: "hsl(var(--chart-1))",
+    },
+    revenue: {
+        label: "Doanh thu",
         color: "hsl(var(--chart-2))",
     },
 }
 
 export function SupplierDashboard() {
+    const [revenueData, setRevenueData] = useState<{ month: string; revenue: number }[]>([])
+    const [revLoading, setRevLoading] = useState(false)
+    const [revError, setRevError] = useState<string | null>(null)
+    const [startDate, setStartDate] = useState<string>(() => {
+        const d = new Date()
+        d.setDate(d.getDate() - 30)
+        return d.toISOString().slice(0, 10)
+    })
+    const [endDate, setEndDate] = useState<string>(() => new Date().toISOString().slice(0, 10))
+    const [rawRevenues, setRawRevenues] = useState<MonthlyRevenue[]>([])
+    const [ordersCount, setOrdersCount] = useState<number | null>(null)
+    const [, setOrdersList] = useState<OrderResponseData[] | null>(null)
+    const [, setApprovedOrdersList] = useState<OrderResponseData[] | null>(null)
+    const [orderStatusData, setOrderStatusData] = useState<{ name: string; value: number; color: string }[]>([
+        { name: "Chờ xử lý", value: 0, color: "#f59e0b" },
+        { name: "Đã duyệt", value: 0, color: "#3b82f6" },
+        { name: "Đã giao", value: 0, color: "#10b981" },
+        { name: "Hoàn thành", value: 0, color: "#8b5cf6" },
+        { name: "Đã hủy", value: 0, color: "#ef4444" },
+    ])
+
+    const loadOrders = async (start?: string, end?: string) => {
+        setRevLoading(true)
+        setRevError(null)
+        try {
+            // Load revenues data from API
+            const res = await getRevenuesApi({ startDate: start, endDate: end })
+            const items: MonthlyRevenue[] = (res as any)?.data ?? []
+            setRawRevenues(items)
+            // map to chart format: show month label as T{month}
+            const mapped = items.map((it) => ({ month: `T${it.month}`, revenue: Number(it.totalRevenue || 0) }))
+            setRevenueData(mapped.slice(0, 6).reverse())
+
+            // Load orders data
+            const formatDateForOrders = (dateStr?: string) => {
+                if (!dateStr) return undefined
+                const parts = dateStr.split('-')
+                if (parts.length === 3) return `${parts[1]}/${parts[2]}/${parts[0]}`
+                return dateStr
+            }
+
+            const ordersRes = await getOrdersApi({
+                page: 1,
+                pageSize: 1000,
+                startDate: formatDateForOrders(start),
+                endDate: formatDateForOrders(end)
+            })
+            const ordersItems: OrderResponseData[] = (ordersRes as any)?.data?.items ?? []
+            setOrdersList(ordersItems)
+            setOrdersCount(ordersItems.length)
+
+            // Filter orders excluding Pending status
+            const approved = ordersItems.filter(o => o.status !== 'Pending')
+            setApprovedOrdersList(approved)
+
+            // Calculate order status distribution
+            const statusCounts = {
+                'Pending': 0,
+                'Approved': 0,
+                'Delivered': 0,
+                'Completed': 0,
+                'Rejected': 0
+            }
+
+            ordersItems.forEach((order) => {
+                if (order.status && statusCounts.hasOwnProperty(order.status)) {
+                    statusCounts[order.status as keyof typeof statusCounts]++
+                }
+            })
+
+            const total = ordersItems.length || 1
+            const statusData = [
+                { name: "Chờ xử lý", value: Math.round((statusCounts.Pending / total) * 100), count: statusCounts.Pending, color: "#f59e0b" },
+                { name: "Đã duyệt", value: Math.round((statusCounts.Approved / total) * 100), count: statusCounts.Approved, color: "#3b82f6" },
+                { name: "Đã giao", value: Math.round((statusCounts.Delivered / total) * 100), count: statusCounts.Delivered, color: "#10b981" },
+                { name: "Hoàn thành", value: Math.round((statusCounts.Completed / total) * 100), count: statusCounts.Completed, color: "#8b5cf6" },
+                { name: "Đã hủy", value: Math.round((statusCounts.Rejected / total) * 100), count: statusCounts.Rejected, color: "#ef4444" },
+            ].filter(s => s.count > 0)
+
+            setOrderStatusData(statusData.length > 0 ? statusData : [
+                { name: "Không có dữ liệu", value: 100, count: 0, color: "#9ca3af" }
+            ])
+        } catch (err) {
+            console.error('loadOrders error', err)
+            setRevError('Không thể tải dữ liệu')
+        } finally {
+            setRevLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        loadOrders(startDate, endDate)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
     return (
         <div className="flex flex-col gap-4 p-4 md:p-6">
             {/* Header */}
@@ -68,62 +150,7 @@ export function SupplierDashboard() {
             {/* Welcome Section */}
             <div className="flex flex-col gap-2">
                 <h1 className="text-3xl font-bold text-foreground">Chào mừng trở lại!</h1>
-                <p className="text-muted-foreground">Theo dõi hoạt động kinh doanh và quản lý sản phẩm hàng hải của bạn</p>
-            </div>
-
-            {/* Stats Cards */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Tổng doanh thu</CardTitle>
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-primary">328,000,000₫</div>
-                        <p className="text-xs text-muted-foreground">
-                            <span className="text-accent">+12.5%</span> so với tháng trước
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Đơn hàng mới</CardTitle>
-                        <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-primary">41</div>
-                        <p className="text-xs text-muted-foreground">
-                            <span className="text-accent">+8</span> đơn hàng tuần này
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Sản phẩm</CardTitle>
-                        <Package className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-primary">156</div>
-                        <p className="text-xs text-muted-foreground">
-                            <span className="text-accent">+3</span> sản phẩm mới
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Đánh giá</CardTitle>
-                        <Star className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-primary">4.8</div>
-                        <p className="text-xs text-muted-foreground">
-                            Từ <span className="text-accent">127</span> đánh giá
-                        </p>
-                    </CardContent>
-                </Card>
+                <p className="text-muted-foreground">Theo dõi đơn hàng theo thời gian</p>
             </div>
 
             {/* Charts */}
@@ -134,254 +161,154 @@ export function SupplierDashboard() {
                         <CardDescription>Biểu đồ doanh thu theo tháng</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <ChartContainer config={chartConfig} className="h-[200px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={revenueData}>
-                                    <XAxis dataKey="month" />
-                                    <YAxis />
-                                    <ChartTooltip content={<ChartTooltipContent />} />
-                                    <Bar dataKey="revenue" fill="var(--color-revenue)" radius={4} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className="flex items-center gap-2">
+                                <label className="text-sm text-muted-foreground">Từ</label>
+                                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <label className="text-sm text-muted-foreground">Đến</label>
+                                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                            </div>
+                            <div>
+                                <Button onClick={() => loadOrders(startDate, endDate)} disabled={revLoading}>
+                                    {revLoading ? <Loader2 className="animate-spin h-4 w-4" /> : 'Tải'}
+                                </Button>
+                                {ordersCount !== null && (
+                                    <div className="inline-flex items-center ml-3 text-sm text-muted-foreground">
+                                        <span className="mr-2">Đơn hàng:</span>
+                                        <Badge>{ordersCount}</Badge>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        {revenueData.length > 0 ? (
+                            <ChartContainer config={chartConfig} className="h-[200px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={revenueData}>
+                                        <XAxis dataKey="month" />
+                                        <YAxis />
+                                        <ChartTooltip content={<ChartTooltipContent />} />
+                                        <Bar dataKey="revenue" fill="var(--color-revenue)" radius={4} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </ChartContainer>
+                        ) : (
+                            <div className="h-[200px] flex items-center justify-center text-sm text-muted-foreground">
+                                Chưa có dữ liệu
+                            </div>
+                        )}
+                        {revError && <div className="text-sm text-destructive mt-2">{revError}</div>}
+                        {/* Detailed revenues table */}
+                        <div className="mt-4">
+                            <h4 className="text-sm font-semibold mb-2">Chi tiết doanh thu</h4>
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="text-left text-xs text-muted-foreground">
+                                        <th className="pb-2">Tháng</th>
+                                        <th className="pb-2">Năm</th>
+                                        <th className="pb-2 text-right">Tổng doanh thu</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {rawRevenues.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={3} className="py-3 text-muted-foreground">Chưa có dữ liệu</td>
+                                        </tr>
+                                    ) : rawRevenues.map((r, idx) => (
+                                        <tr key={idx} className="border-t">
+                                            <td className="py-2">{`T${r.month}`}</td>
+                                            <td className="py-2">{r.year}</td>
+                                            <td className="py-2 text-right">{Number(r.totalRevenue).toLocaleString('vi-VN')} đ</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        {/* Orders detail table - Commented out temporarily 
+                        {approvedOrdersList && approvedOrdersList.length > 0 && (
+                            <div className="mt-6">
+                                <h4 className="text-sm font-semibold mb-2">Chi tiết đơn hàng ({approvedOrdersList.length})</h4>
+                                <div className="border rounded-lg overflow-hidden">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-muted">
+                                            <tr className="text-left text-xs text-muted-foreground">
+                                                <th className="p-2">Mã đơn</th>
+                                                <th className="p-2">Tàu</th>
+                                                <th className="p-2">Xưởng</th>
+                                                <th className="p-2 text-right">Tổng tiền</th>
+                                                <th className="p-2">Trạng thái</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {approvedOrdersList.map((order) => (
+                                                <tr key={order.id} className="border-t hover:bg-muted/50">
+                                                    <td className="p-2">{order.id.slice(0, 8)}</td>
+                                                    <td className="p-2">{order.shipName || 'N/A'}</td>
+                                                    <td className="p-2">{order.boatyardName || 'N/A'}</td>
+                                                    <td className="p-2 text-right">{Number(order.totalAmount || 0).toLocaleString('vi-VN')} đ</td>
+                                                    <td className="p-2">
+                                                        <Badge variant={
+                                                            order.status === 'Completed' ? 'default' :
+                                                                order.status === 'Approved' ? 'secondary' :
+                                                                    order.status === 'Delivered' ? 'outline' :
+                                                                        order.status === 'Rejected' ? 'destructive' : 'secondary'
+                                                        }>
+                                                            {order.status === 'Approved' ? 'Đã duyệt' :
+                                                                order.status === 'Delivered' ? 'Đã giao' :
+                                                                    order.status === 'Completed' ? 'Hoàn thành' :
+                                                                        order.status === 'Rejected' ? 'Đã hủy' : order.status}
+                                                        </Badge>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                        */}
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Đơn hàng 6 tháng</CardTitle>
-                        <CardDescription>Số lượng đơn hàng theo tháng</CardDescription>
+                        <CardTitle>Phân loại đơn hàng</CardTitle>
+                        <CardDescription>Tỷ lệ trạng thái đơn hàng</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <ChartContainer config={chartConfig} className="h-[200px]">
                             <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={orderData}>
-                                    <XAxis dataKey="month" />
-                                    <YAxis />
+                                <PieChart>
+                                    <Pie
+                                        data={orderStatusData}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={40}
+                                        outerRadius={80}
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                    >
+                                        {orderStatusData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                        ))}
+                                    </Pie>
                                     <ChartTooltip content={<ChartTooltipContent />} />
-                                    <Line
-                                        type="monotone"
-                                        dataKey="orders"
-                                        stroke="var(--color-orders)"
-                                        strokeWidth={2}
-                                        dot={{ fill: "var(--color-orders)" }}
-                                    />
-                                </LineChart>
+                                </PieChart>
                             </ResponsiveContainer>
                         </ChartContainer>
+                        <div className="grid grid-cols-2 gap-2 mt-4">
+                            {orderStatusData.map((item, index) => (
+                                <div key={index} className="flex items-center gap-2 text-xs">
+                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                                    <span className="truncate">{item.name}</span>
+                                    {(item as any).count !== undefined && <span className="font-medium">{(item as any).count}</span>}
+                                </div>
+                            ))}
+                        </div>
                     </CardContent>
                 </Card>
             </div>
-
-            {/* Main Content Tabs */}
-            <Tabs defaultValue="orders" className="space-y-4">
-                <TabsList>
-                    <TabsTrigger value="orders">Đơn hàng gần đây</TabsTrigger>
-                    <TabsTrigger value="products">Sản phẩm bán chạy</TabsTrigger>
-                    <TabsTrigger value="delivery">Giao hàng</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="orders" className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Đơn hàng mới nhất</CardTitle>
-                            <CardDescription>Các đơn hàng cần xử lý</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {[
-                                    {
-                                        id: "DH001",
-                                        customer: "Công ty Vận tải Biển Đông",
-                                        product: "Động cơ diesel Caterpillar C32",
-                                        amount: "45,000,000₫",
-                                        status: "Chờ xác nhận",
-                                        time: "2 giờ trước",
-                                    },
-                                    {
-                                        id: "DH002",
-                                        customer: "Xưởng sửa chữa Hải Phòng",
-                                        product: "Bộ phụ tùng máy phát điện",
-                                        amount: "12,500,000₫",
-                                        status: "Đang chuẩn bị",
-                                        time: "4 giờ trước",
-                                    },
-                                    {
-                                        id: "DH003",
-                                        customer: "Công ty Tàu thủy Sài Gòn",
-                                        product: "Hệ thống điều hướng GPS",
-                                        amount: "28,000,000₫",
-                                        status: "Sẵn sàng giao",
-                                        time: "6 giờ trước",
-                                    },
-                                ].map((order) => (
-                                    <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
-                                        <div className="space-y-1">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-medium">#{order.id}</span>
-                                                <Badge
-                                                    variant={
-                                                        order.status === "Chờ xác nhận"
-                                                            ? "destructive"
-                                                            : order.status === "Đang chuẩn bị"
-                                                                ? "secondary"
-                                                                : "default"
-                                                    }
-                                                >
-                                                    {order.status}
-                                                </Badge>
-                                            </div>
-                                            <p className="text-sm text-muted-foreground">{order.customer}</p>
-                                            <p className="text-sm font-medium">{order.product}</p>
-                                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                                <span className="flex items-center gap-1">
-                                                    <Clock className="h-3 w-3" />
-                                                    {order.time}
-                                                </span>
-                                                <span className="font-medium text-primary">{order.amount}</span>
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <Button size="sm" variant="outline">
-                                                <Eye className="h-4 w-4" />
-                                            </Button>
-                                            <Button size="sm">
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                <TabsContent value="products" className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Sản phẩm bán chạy nhất</CardTitle>
-                            <CardDescription>Top sản phẩm có doanh số cao</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {[
-                                    {
-                                        name: "Động cơ diesel Caterpillar C32",
-                                        category: "Động cơ chính",
-                                        sold: 12,
-                                        revenue: "540,000,000₫",
-                                        trend: "+15%",
-                                    },
-                                    {
-                                        name: "Hệ thống điều hướng GPS Furuno",
-                                        category: "Thiết bị điều hướng",
-                                        sold: 8,
-                                        revenue: "224,000,000₫",
-                                        trend: "+8%",
-                                    },
-                                    {
-                                        name: "Máy phát điện Cummins 150kW",
-                                        category: "Máy phát điện",
-                                        sold: 15,
-                                        revenue: "375,000,000₫",
-                                        trend: "+22%",
-                                    },
-                                ].map((product, index) => (
-                                    <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                                        <div className="space-y-1">
-                                            <p className="font-medium">{product.name}</p>
-                                            <p className="text-sm text-muted-foreground">{product.category}</p>
-                                            <div className="flex items-center gap-4 text-xs">
-                                                <span>
-                                                    Đã bán: <span className="font-medium">{product.sold}</span>
-                                                </span>
-                                                <span className="text-accent">{product.trend}</span>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="font-medium text-primary">{product.revenue}</p>
-                                            <p className="text-xs text-muted-foreground">Doanh thu</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                <TabsContent value="delivery" className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Lịch giao hàng</CardTitle>
-                            <CardDescription>Các đơn hàng cần giao trong tuần</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {[
-                                    {
-                                        id: "GH001",
-                                        destination: "Xưởng sửa chữa Cát Lái, TP.HCM",
-                                        product: "Bộ phụ tùng máy phát điện",
-                                        date: "Hôm nay, 14:00",
-                                        status: "Đang giao",
-                                        driver: "Nguyễn Văn A",
-                                    },
-                                    {
-                                        id: "GH002",
-                                        destination: "Cảng Hải Phòng, Quận Hồng Bàng",
-                                        product: "Hệ thống điều hướng GPS",
-                                        date: "Mai, 09:00",
-                                        status: "Đã lên lịch",
-                                        driver: "Trần Văn B",
-                                    },
-                                    {
-                                        id: "GH003",
-                                        destination: "Xưởng Đóng tàu Sài Gòn",
-                                        product: "Động cơ diesel Caterpillar",
-                                        date: "Thứ 6, 10:30",
-                                        status: "Chuẩn bị",
-                                        driver: "Chưa phân công",
-                                    },
-                                ].map((delivery) => (
-                                    <div key={delivery.id} className="flex items-center justify-between p-4 border rounded-lg">
-                                        <div className="space-y-1">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-medium">#{delivery.id}</span>
-                                                <Badge
-                                                    variant={
-                                                        delivery.status === "Đang giao"
-                                                            ? "default"
-                                                            : delivery.status === "Đã lên lịch"
-                                                                ? "secondary"
-                                                                : "outline"
-                                                    }
-                                                >
-                                                    {delivery.status}
-                                                </Badge>
-                                            </div>
-                                            <p className="text-sm font-medium">{delivery.product}</p>
-                                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                                <MapPin className="h-3 w-3" />
-                                                {delivery.destination}
-                                            </div>
-                                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                                <span>{delivery.date}</span>
-                                                <span className="flex items-center gap-1">
-                                                    <Truck className="h-3 w-3" />
-                                                    {delivery.driver}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <Button size="sm" variant="outline">
-                                            Theo dõi
-                                        </Button>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-            </Tabs>
         </div>
     )
 }

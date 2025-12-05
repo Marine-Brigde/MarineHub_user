@@ -18,7 +18,7 @@ function haversine(a: [number, number], b: [number, number]) {
     return R * c;
 }
 
-const MAP_KEY = import.meta.env.VITE_GOONG_MAP_KEY as string;
+const MAP_KEY = (import.meta.env.VITE_GOONG_MAP_KEY as string) || 'ebt7JiGUl4WpHtDy5kpe4JB299y5TAm63e9My9Z6';
 
 interface RouteMapProps {
     start?: { lat: number; lng: number } | null; // ship

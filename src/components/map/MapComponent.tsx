@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import type { FeatureCollection, Polygon } from 'geojson';
 import maplibregl from 'maplibre-gl'; // Import maplibregl để TypeScript nhận diện
 
-// Goong API keys from .env
-const MAP_KEY = import.meta.env.VITE_GOONG_MAP_KEY as string;
-const API_KEY = import.meta.env.VITE_GOONG_API_KEY as string;
+// Goong API keys from .env or fallback defaults
+const MAP_KEY = (import.meta.env.VITE_GOONG_MAP_KEY as string) || 'ebt7JiGUl4WpHtDy5kpe4JB299y5TAm63e9My9Z6';
+const API_KEY = (import.meta.env.VITE_GOONG_API_KEY as string) || 'C6cwG6MCfcHXlBVpKbzFqKkeS2d0AxM1N6uW5Y03';
 
 interface MapComponentProps {
     onLocationSelect: (lat: string, lng: string, address: string) => void;

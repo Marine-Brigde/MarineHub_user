@@ -22,6 +22,7 @@ import { getDockSlotsApi, createDockSlotApi, updateDockSlotApi } from "@/api/doc
 import type { DockSlot, CreateDockSlotRequest, UpdateDockSlotRequest } from "@/types/dockSlot/dockSlot"
 import { SidebarTrigger } from "../ui/sidebar"
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "../ui/breadcrumb"
+import { useToast } from "@/hooks/use-toast"
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null
 
@@ -103,6 +104,7 @@ type DockFormState = {
 }
 
 export function DockManagement() {
+    const { toast } = useToast()
     const [searchTerm, setSearchTerm] = useState("")
     const [docks, setDocks] = useState<DockSlot[]>([])
     const [loading, setLoading] = useState(false)
@@ -170,7 +172,7 @@ export function DockManagement() {
             const assignedUntilIso = toIsoString(formData.assignedUntil)
 
             if (!name) {
-                setFormError("Tên dock không được để trống")
+                setFormError("Vui lòng nhập tên bến đậu")
                 setFormLoading(false)
                 return
             }
@@ -178,14 +180,14 @@ export function DockManagement() {
             // Validate thời gian nhận (assignedFrom)
             if (assignedFromIso) {
                 const assignedFromDate = new Date(assignedFromIso)
-                
+
                 // Check if date is valid
                 if (isNaN(assignedFromDate.getTime())) {
-                    setFormError("Thời gian nhận không hợp lệ")
+                    setFormError("Vui lòng nhập thời gian nhận hợp lệ")
                     setFormLoading(false)
                     return
                 }
-                
+
                 if (editDock?.createdDate) {
                     // Nếu đang sửa, thời gian nhận phải >= createdDate
                     const createdDate = new Date(editDock.createdDate)
@@ -200,7 +202,7 @@ export function DockManagement() {
 
             // Validate thời gian kết thúc phải sau thời gian bắt đầu
             if (assignedFromIso && assignedUntilIso && assignedFromIso > assignedUntilIso) {
-                setFormError("Thời gian kết thúc phải sau thời gian bắt đầu")
+                setFormError("Thời gian trả phải sau thời gian nhận")
                 setFormLoading(false)
                 return
             }
@@ -213,6 +215,11 @@ export function DockManagement() {
                     assignedUntil: assignedUntilIso || null,
                 }
                 await updateDockSlotApi(editDock.id, payload)
+                toast({
+                    title: "Thành công",
+                    description: "Bến đậu đã được cập nhật",
+                    variant: "success",
+                })
             } else {
                 const payload: CreateDockSlotRequest = {
                     name,
@@ -220,13 +227,24 @@ export function DockManagement() {
                     assignedUntil: assignedUntilIso || null,
                 }
                 await createDockSlotApi(payload)
+                toast({
+                    title: "Thành công",
+                    description: "Bến đậu đã được tạo",
+                    variant: "success",
+                })
             }
 
             setShowDialog(false)
             setEditDock(null)
             fetchDocks()
         } catch (err: unknown) {
-            setFormError(getErrorMessage(err))
+            const errorMsg = getErrorMessage(err)
+            setFormError(errorMsg)
+            toast({
+                title: "Lỗi",
+                description: errorMsg,
+                variant: "destructive",
+            })
         } finally {
             setFormLoading(false)
         }
@@ -242,9 +260,18 @@ export function DockManagement() {
                 assignedUntil: dock.assignedUntil ?? null,
             }
             await updateDockSlotApi(dock.id, payload)
+            toast({
+                title: "Thành công",
+                description: "Trạng thái bến đậu đã được cập nhật",
+                variant: "success",
+            })
             fetchDocks()
-        } catch {
-            // silent
+        } catch (err: unknown) {
+            toast({
+                title: "Lỗi",
+                description: "Không thể cập nhật bến đậu",
+                variant: "destructive",
+            })
         } finally {
             setToggleLoading(null)
         }
@@ -269,12 +296,12 @@ export function DockManagement() {
             </div>
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="space-y-1">
-                    <h1 className="text-3xl font-semibold tracking-tight text-balance">Quản lý Dock Slots</h1>
-                    <p className="text-sm text-muted-foreground">Quản lý bến đỗ của xưởng</p>
+                    <h1 className="text-3xl font-semibold tracking-tight text-balance">Quản lý Bến Đậu</h1>
+                    <p className="text-sm text-muted-foreground">Quản lý bến đậu của xưởng</p>
                 </div>
                 <Button onClick={handleOpenCreate} size="default" className="w-full md:w-auto">
                     <Plus className="mr-2 h-4 w-4" />
-                    Thêm Dock
+                    Thêm Bến Đậu
                 </Button>
             </div>
 
@@ -284,7 +311,7 @@ export function DockManagement() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                         className="pl-9"
-                        placeholder="Tìm kiếm dock..."
+                        placeholder="Tìm kiếm bến đậu..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -304,14 +331,14 @@ export function DockManagement() {
             {/* Table Card */}
             <Card className="border-border/50">
                 <CardHeader className="border-b border-border/50 ">
-                    <CardTitle className="text-lg">Danh sách Dock</CardTitle>
+                    <CardTitle className="text-lg">Danh sách Bến Đậu</CardTitle>
 
                 </CardHeader>
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
                             <TableRow className="hover:bg-transparent border-border/50">
-                                <TableHead className="w-[30%]">Tên Dock</TableHead>
+                                <TableHead className="w-[30%]">Tên Bến Đậu</TableHead>
                                 <TableHead className="w-[20%]">Thời gian nhận</TableHead>
                                 <TableHead className="w-[20%]">Thời gian trả</TableHead>
                                 <TableHead className="w-[15%]">Trạng thái</TableHead>
@@ -333,7 +360,7 @@ export function DockManagement() {
                                     <TableCell colSpan={3} className="h-32 text-center">
                                         <div className="flex flex-col items-center gap-2 text-muted-foreground">
                                             <Search className="h-8 w-8 opacity-50" />
-                                            <p className="text-sm">{searchTerm ? "Không tìm thấy dock phù hợp" : "Chưa có dock nào"}</p>
+                                            <p className="text-sm">{searchTerm ? "Không tìm thấy bến đậu phù hợp" : "Chưa có bến đậu nào"}</p>
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -414,17 +441,17 @@ export function DockManagement() {
                 <DialogContent className="sm:max-w-[425px]">
                     <form onSubmit={handleFormSubmit}>
                         <DialogHeader>
-                            <DialogTitle>{editDock ? "Sửa Dock" : "Thêm Dock Mới"}</DialogTitle>
+                            <DialogTitle>{editDock ? "Sửa Bến Đậu" : "Thêm Bến Đậu Mới"}</DialogTitle>
                             <DialogDescription>
-                                {editDock ? "Cập nhật thông tin dock slot" : "Tạo dock slot mới cho xưởng"}
+                                {editDock ? "Cập nhật thông tin bến đậu" : "Tạo bến đậu mới cho xưởng"}
                             </DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
                             <div className="grid gap-2">
-                                <Label htmlFor="name">Tên Dock</Label>
+                                <Label htmlFor="name">Tên Bến Đậu</Label>
                                 <Input
                                     id="name"
-                                    placeholder="Nhập tên dock..."
+                                    placeholder="Nhập tên bến đậu..."
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     required
@@ -441,8 +468,8 @@ export function DockManagement() {
                                         setFormError("") // Clear error when user changes value
                                     }}
                                     placeholder="Chọn thời gian nhận"
-                                    min={editDock?.createdDate 
-                                        ? toLocalInputValue(editDock.createdDate) 
+                                    min={editDock?.createdDate
+                                        ? toLocalInputValue(editDock.createdDate)
                                         : undefined}
                                 />
                                 {editDock?.createdDate ? (
@@ -470,7 +497,7 @@ export function DockManagement() {
                                     <Label htmlFor="isActive" className="text-base">
                                         Trạng thái
                                     </Label>
-                                    <p className="text-sm text-muted-foreground">Dock có sẵn sàng hoạt động không</p>
+                                    <p className="text-sm text-muted-foreground">Bến đậu có sẵn sàng hoạt động không</p>
                                 </div>
                                 <Switch
                                     id="isActive"

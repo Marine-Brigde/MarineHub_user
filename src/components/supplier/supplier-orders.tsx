@@ -21,11 +21,13 @@ import { Phone, User, Ship, Loader2, Filter } from 'lucide-react'
 
 import { getOrdersApi, getOrderByIdApi } from '@/api/Order/orderApi'
 import type { OrderResponseData, OrderDetailResponseData, OrderStatus } from '@/types/Order/order'
+import { useToast } from '@/hooks/use-toast'
 
 // Chỉ sử dụng các status đã định nghĩa trong OrderStatus type
 const ORDER_STATUSES: OrderStatus[] = ['Pending', 'Approved', 'Delivered', 'Completed', 'Rejected']
 
 export default function SupplierOrders() {
+    const { toast } = useToast()
     const [allOrders, setAllOrders] = useState<OrderResponseData[]>([]) // All orders from API
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -123,7 +125,7 @@ export default function SupplierOrders() {
     const openContact = async (order: OrderResponseData) => {
         setContactOrder(order)
         setContactDialogOpen(true)
-        
+
         // If order doesn't have contact info, fetch it from API
         if (!order.phone && !order.shipName && !order.boatyardName) {
             setContactLoading(true)
@@ -190,9 +192,20 @@ export default function SupplierOrders() {
             // Refresh detail
             const detailRes = await (await import('@/api/Order/orderApi')).getOrderByIdApi(selectedOrder.id)
             if (detailRes && detailRes.data) setSelectedOrder(detailRes.data as OrderDetailResponseData)
+            toast({
+                title: "Thành công",
+                description: "Trạng thái đơn hàng đã được cập nhật",
+                variant: "success",
+            })
         } catch (err) {
             console.error('updateOrderApi', err)
-            setDetailError('Không thể cập nhật trạng thái')
+            const errorMsg = 'Không thể cập nhật trạng thái'
+            setDetailError(errorMsg)
+            toast({
+                title: "Lỗi",
+                description: errorMsg,
+                variant: "destructive",
+            })
         } finally {
             setDetailLoading(false)
         }
@@ -273,286 +286,286 @@ export default function SupplierOrders() {
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                {loading && (
-                    <div className="flex items-center justify-center py-12">
-                        <div className="flex flex-col items-center gap-4">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                            <p className="text-muted-foreground">Đang tải đơn hàng...</p>
+                    {loading && (
+                        <div className="flex items-center justify-center py-12">
+                            <div className="flex flex-col items-center gap-4">
+                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                <p className="text-muted-foreground">Đang tải đơn hàng...</p>
+                            </div>
                         </div>
-                    </div>
-                )}
-                {error && <div className="text-destructive p-4 bg-destructive/10 rounded-md">{error}</div>}
+                    )}
+                    {error && <div className="text-destructive p-4 bg-destructive/10 rounded-md">{error}</div>}
 
-                {!loading && !error && (
-                    <>
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="text-base font-semibold">Mã đơn hàng</TableHead>
-                                        <TableHead className="text-base font-semibold">Tổng tiền</TableHead>
-                                        <TableHead className="text-base font-semibold">Trạng thái</TableHead>
-                                        <TableHead className="text-right text-base font-semibold">Hành động</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {paginatedOrders.length === 0 ? (
+                    {!loading && !error && (
+                        <>
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
                                         <TableRow>
-                                            <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
-                                                {statusFilter === 'all' 
-                                                    ? 'Không có đơn hàng nào' 
-                                                    : `Không có đơn hàng nào với trạng thái "${statusMap[statusFilter]?.label || statusFilter}"`}
-                                            </TableCell>
+                                            <TableHead className="text-base font-semibold">Mã đơn hàng</TableHead>
+                                            <TableHead className="text-base font-semibold">Tổng tiền</TableHead>
+                                            <TableHead className="text-base font-semibold">Trạng thái</TableHead>
+                                            <TableHead className="text-right text-base font-semibold">Hành động</TableHead>
                                         </TableRow>
-                                    ) : (
-                                        paginatedOrders.map((o) => (
-                                            <TableRow key={o.id} className="hover:bg-muted/50">
-                                                <TableCell className="font-medium py-4">
-                                                    <button 
-                                                        className="text-primary hover:underline text-left font-mono text-sm" 
-                                                        onClick={() => openDetail(o.id)}
-                                                    >
-                                                        #{getShortId(o.id)}
-                                                    </button>
-                                                </TableCell>
-                                                <TableCell className="py-4 text-sm font-medium">{o.totalAmount?.toLocaleString('vi-VN')} đ</TableCell>
-                                                <TableCell className="py-4">{renderStatus(o.status)}</TableCell>
-                                                <TableCell className="text-right py-4">
-                                                    <div className="flex justify-end gap-2">
-                                                        <Button 
-                                                            size="default" 
-                                                            variant="outline"
-                                                            onClick={() => openContact(o)}
-                                                        >
-                                                            Liên hệ
-                                                        </Button>
-                                                    </div>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {paginatedOrders.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
+                                                    {statusFilter === 'all'
+                                                        ? 'Không có đơn hàng nào'
+                                                        : `Không có đơn hàng nào với trạng thái "${statusMap[statusFilter]?.label || statusFilter}"`}
                                                 </TableCell>
                                             </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
-
-                        {/* Pagination */}
-                        {totalPages > 1 && (
-                            <div className="flex items-center justify-between pt-6 border-t">
-                                <div className="text-sm text-muted-foreground">
-                                    Hiển thị <span className="font-semibold text-foreground">{(currentPage - 1) * pageSize + 1}</span> - <span className="font-semibold text-foreground">{Math.min(currentPage * pageSize, filteredOrders.length)}</span> của <span className="font-semibold text-foreground">{filteredOrders.length}</span> đơn hàng
-                                </div>
-                                <Pagination>
-                                    <PaginationContent className="gap-0">
-                                        <PaginationItem>
-                                            <PaginationPrevious
-                                                href="#"
-                                                onClick={(e) => {
-                                                    e.preventDefault()
-                                                    if (currentPage > 1) setCurrentPage(currentPage - 1)
-                                                }}
-                                                className={`h-10 px-4 ${currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
-                                            />
-                                        </PaginationItem>
-
-                                        {getPageNumbers().map((page, idx) => (
-                                            <PaginationItem key={idx}>
-                                                {page === "..." ? (
-                                                    <PaginationEllipsis />
-                                                ) : (
-                                                    <PaginationLink
-                                                        href="#"
-                                                        isActive={page === currentPage}
-                                                        onClick={(e) => {
-                                                            e.preventDefault()
-                                                            if (typeof page === "number") {
-                                                                setCurrentPage(page)
-                                                            }
-                                                        }}
-                                                        className={`h-10 px-4 ${page === currentPage ? "bg-primary text-primary-foreground" : ""}`}
-                                                    >
-                                                        {page}
-                                                    </PaginationLink>
-                                                )}
-                                            </PaginationItem>
-                                        ))}
-
-                                        <PaginationItem>
-                                            <PaginationNext
-                                                href="#"
-                                                onClick={(e) => {
-                                                    e.preventDefault()
-                                                    if (currentPage < totalPages) setCurrentPage(currentPage + 1)
-                                                }}
-                                                className={`h-10 px-4 ${currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
-                                            />
-                                        </PaginationItem>
-                                    </PaginationContent>
-                                </Pagination>
-                            </div>
-                        )}
-                    </>
-                )}
-
-                {/* detail dialog */}
-                <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) closeDetail(); setDialogOpen(open) }}>
-                    <DialogContent className="sm:max-w-lg">
-                        <DialogHeader>
-                            <DialogTitle>Chi tiết đơn hàng</DialogTitle>
-                        </DialogHeader>
-                        <div className="p-4">
-                            {detailLoading ? (
-                                <div className="flex items-center justify-center py-12">
-                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                                </div>
-                            ) : detailError ? (
-                                <div className="text-destructive">{detailError}</div>
-                            ) : selectedOrder ? (
-                                <div className="space-y-4">
-                                    <div className="space-y-1">
-                                        <div className="text-sm text-muted-foreground">Mã đơn hàng</div>
-                                        <div className="text-lg font-semibold font-mono">#{getShortId(selectedOrder.id)}</div>
-                                    </div>
-                                    
-                                    <Separator />
-                                    
-                                    {/* Tên đơn hàng / Tên khách hàng */}
-                                    {(selectedOrder.shipName || selectedOrder.boatyardName) && (
-                                        <>
-                                            <div className="space-y-1">
-                                                <div className="text-sm text-muted-foreground">Tên đơn hàng</div>
-                                                <div className="text-base font-semibold">
-                                                    {selectedOrder.shipName || selectedOrder.boatyardName || '-'}
-                                                </div>
-                                            </div>
-                                            <Separator />
-                                        </>
-                                    )}
-                                    
-                                    {selectedOrder.orderCode && (
-                                        <>
-                                            <div className="space-y-1">
-                                                <div className="text-sm text-muted-foreground">Mã code</div>
-                                                <div className="text-base font-medium">{selectedOrder.orderCode}</div>
-                                            </div>
-                                            <Separator />
-                                        </>
-                                    )}
-                                    
-                                    <div className="flex flex-col gap-2">
-                                        <div className="flex items-center justify-between">
-                                            <div className="text-sm text-muted-foreground">Trạng thái</div>
-                                            <div>{renderStatus(selectedOrder.status)}</div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <select
-                                                value={newStatus || ''}
-                                                onChange={(e) => setNewStatus(e.target.value)}
-                                                className="border rounded px-2 py-1 text-sm flex-1"
-                                            >
-                                                {allowedStatusesFor(selectedOrder.status).map((s) => (
-                                                    <option key={s} value={s}>{statusMap[s.toLowerCase()]?.label || s}</option>
-                                                ))}
-                                            </select>
-                                            <Button size="sm" onClick={updateStatus} disabled={detailLoading || !newStatus}>
-                                                Cập nhật
-                                            </Button>
-                                        </div>
-                                    </div>
-                                    
-                                    <Separator />
-                                    
-                                    <div className="flex justify-between items-center">
-                                        <div className="text-sm text-muted-foreground">Tổng tiền</div>
-                                        <div className="text-xl font-bold text-primary">{selectedOrder.totalAmount?.toLocaleString('vi-VN') || 0} đ</div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div>Không có dữ liệu</div>
-                            )}
-                        </div>
-                        <DialogFooter>
-                            <div className="w-full flex justify-end">
-                                <Button variant="outline" onClick={closeDetail}>Đóng</Button>
-                            </div>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-
-                {/* Contact dialog */}
-                <Dialog open={contactDialogOpen} onOpenChange={(open) => { if (!open) closeContact(); setContactDialogOpen(open) }}>
-                    <DialogContent className="sm:max-w-md">
-                        <DialogHeader>
-                            <DialogTitle>Thông tin liên hệ</DialogTitle>
-                            <DialogDescription>
-                                Thông tin khách hàng đặt đơn hàng #{contactOrder ? getShortId(contactOrder.id) : ''}
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4 py-4">
-                            {contactLoading ? (
-                                <div className="flex items-center justify-center py-8">
-                                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                                </div>
-                            ) : contactOrder ? (
-                                <>
-                                    {/* Customer Name */}
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                            {contactOrder.shipName ? (
-                                                <Ship className="h-4 w-4" />
-                                            ) : contactOrder.boatyardName ? (
-                                                <User className="h-4 w-4" />
-                                            ) : (
-                                                <User className="h-4 w-4" />
-                                            )}
-                                            <span>Tên người đặt</span>
-                                        </div>
-                                        <p className="text-base font-semibold pl-6">
-                                            {contactOrder.shipName || contactOrder.boatyardName || 'Chưa có thông tin'}
-                                        </p>
-                                    </div>
-
-                                    <Separator />
-
-                                    {/* Phone Number */}
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                            <Phone className="h-4 w-4" />
-                                            <span>Số điện thoại</span>
-                                        </div>
-                                        {contactOrder.phone ? (
-                                            <a
-                                                href={`tel:${contactOrder.phone}`}
-                                                className="text-base font-semibold pl-6 text-primary hover:underline flex items-center gap-2"
-                                            >
-                                                {contactOrder.phone}
-                                            </a>
                                         ) : (
-                                            <p className="text-base text-muted-foreground pl-6">Chưa có thông tin</p>
+                                            paginatedOrders.map((o) => (
+                                                <TableRow key={o.id} className="hover:bg-muted/50">
+                                                    <TableCell className="font-medium py-4">
+                                                        <button
+                                                            className="text-primary hover:underline text-left font-mono text-sm"
+                                                            onClick={() => openDetail(o.id)}
+                                                        >
+                                                            #{getShortId(o.id)}
+                                                        </button>
+                                                    </TableCell>
+                                                    <TableCell className="py-4 text-sm font-medium">{o.totalAmount?.toLocaleString('vi-VN')} đ</TableCell>
+                                                    <TableCell className="py-4">{renderStatus(o.status)}</TableCell>
+                                                    <TableCell className="text-right py-4">
+                                                        <div className="flex justify-end gap-2">
+                                                            <Button
+                                                                size="default"
+                                                                variant="outline"
+                                                                onClick={() => openContact(o)}
+                                                            >
+                                                                Liên hệ
+                                                            </Button>
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
                                         )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+
+                            {/* Pagination */}
+                            {totalPages > 1 && (
+                                <div className="flex items-center justify-between pt-6 border-t">
+                                    <div className="text-sm text-muted-foreground">
+                                        Hiển thị <span className="font-semibold text-foreground">{(currentPage - 1) * pageSize + 1}</span> - <span className="font-semibold text-foreground">{Math.min(currentPage * pageSize, filteredOrders.length)}</span> của <span className="font-semibold text-foreground">{filteredOrders.length}</span> đơn hàng
                                     </div>
-                                </>
-                            ) : (
-                                <p className="text-center text-muted-foreground py-4">Không có thông tin</p>
+                                    <Pagination>
+                                        <PaginationContent className="gap-0">
+                                            <PaginationItem>
+                                                <PaginationPrevious
+                                                    href="#"
+                                                    onClick={(e) => {
+                                                        e.preventDefault()
+                                                        if (currentPage > 1) setCurrentPage(currentPage - 1)
+                                                    }}
+                                                    className={`h-10 px-4 ${currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+                                                />
+                                            </PaginationItem>
+
+                                            {getPageNumbers().map((page, idx) => (
+                                                <PaginationItem key={idx}>
+                                                    {page === "..." ? (
+                                                        <PaginationEllipsis />
+                                                    ) : (
+                                                        <PaginationLink
+                                                            href="#"
+                                                            isActive={page === currentPage}
+                                                            onClick={(e) => {
+                                                                e.preventDefault()
+                                                                if (typeof page === "number") {
+                                                                    setCurrentPage(page)
+                                                                }
+                                                            }}
+                                                            className={`h-10 px-4 ${page === currentPage ? "bg-primary text-primary-foreground" : ""}`}
+                                                        >
+                                                            {page}
+                                                        </PaginationLink>
+                                                    )}
+                                                </PaginationItem>
+                                            ))}
+
+                                            <PaginationItem>
+                                                <PaginationNext
+                                                    href="#"
+                                                    onClick={(e) => {
+                                                        e.preventDefault()
+                                                        if (currentPage < totalPages) setCurrentPage(currentPage + 1)
+                                                    }}
+                                                    className={`h-10 px-4 ${currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+                                                />
+                                            </PaginationItem>
+                                        </PaginationContent>
+                                    </Pagination>
+                                </div>
                             )}
-                        </div>
-                        <DialogFooter>
-                            {contactOrder?.phone && (
-                                <Button
-                                    asChild
-                                    className="flex-1"
-                                >
-                                    <a href={`tel:${contactOrder.phone}`}>
-                                        <Phone className="h-4 w-4 mr-2" />
-                                        Gọi ngay
-                                    </a>
+                        </>
+                    )}
+
+                    {/* detail dialog */}
+                    <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) closeDetail(); setDialogOpen(open) }}>
+                        <DialogContent className="sm:max-w-lg">
+                            <DialogHeader>
+                                <DialogTitle>Chi tiết đơn hàng</DialogTitle>
+                            </DialogHeader>
+                            <div className="p-4">
+                                {detailLoading ? (
+                                    <div className="flex items-center justify-center py-12">
+                                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                    </div>
+                                ) : detailError ? (
+                                    <div className="text-destructive">{detailError}</div>
+                                ) : selectedOrder ? (
+                                    <div className="space-y-4">
+                                        <div className="space-y-1">
+                                            <div className="text-sm text-muted-foreground">Mã đơn hàng</div>
+                                            <div className="text-lg font-semibold font-mono">#{getShortId(selectedOrder.id)}</div>
+                                        </div>
+
+                                        <Separator />
+
+                                        {/* Tên đơn hàng / Tên khách hàng */}
+                                        {(selectedOrder.shipName || selectedOrder.boatyardName) && (
+                                            <>
+                                                <div className="space-y-1">
+                                                    <div className="text-sm text-muted-foreground">Tên đơn hàng</div>
+                                                    <div className="text-base font-semibold">
+                                                        {selectedOrder.shipName || selectedOrder.boatyardName || '-'}
+                                                    </div>
+                                                </div>
+                                                <Separator />
+                                            </>
+                                        )}
+
+                                        {selectedOrder.orderCode && (
+                                            <>
+                                                <div className="space-y-1">
+                                                    <div className="text-sm text-muted-foreground">Mã code</div>
+                                                    <div className="text-base font-medium">{selectedOrder.orderCode}</div>
+                                                </div>
+                                                <Separator />
+                                            </>
+                                        )}
+
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-sm text-muted-foreground">Trạng thái</div>
+                                                <div>{renderStatus(selectedOrder.status)}</div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <select
+                                                    value={newStatus || ''}
+                                                    onChange={(e) => setNewStatus(e.target.value)}
+                                                    className="border rounded px-2 py-1 text-sm flex-1"
+                                                >
+                                                    {allowedStatusesFor(selectedOrder.status).map((s) => (
+                                                        <option key={s} value={s}>{statusMap[s.toLowerCase()]?.label || s}</option>
+                                                    ))}
+                                                </select>
+                                                <Button size="sm" onClick={updateStatus} disabled={detailLoading || !newStatus}>
+                                                    Cập nhật
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        <Separator />
+
+                                        <div className="flex justify-between items-center">
+                                            <div className="text-sm text-muted-foreground">Tổng tiền</div>
+                                            <div className="text-xl font-bold text-primary">{selectedOrder.totalAmount?.toLocaleString('vi-VN') || 0} đ</div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div>Không có dữ liệu</div>
+                                )}
+                            </div>
+                            <DialogFooter>
+                                <div className="w-full flex justify-end">
+                                    <Button variant="outline" onClick={closeDetail}>Đóng</Button>
+                                </div>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+
+                    {/* Contact dialog */}
+                    <Dialog open={contactDialogOpen} onOpenChange={(open) => { if (!open) closeContact(); setContactDialogOpen(open) }}>
+                        <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                                <DialogTitle>Thông tin liên hệ</DialogTitle>
+                                <DialogDescription>
+                                    Thông tin khách hàng đặt đơn hàng #{contactOrder ? getShortId(contactOrder.id) : ''}
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                {contactLoading ? (
+                                    <div className="flex items-center justify-center py-8">
+                                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                    </div>
+                                ) : contactOrder ? (
+                                    <>
+                                        {/* Customer Name */}
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                {contactOrder.shipName ? (
+                                                    <Ship className="h-4 w-4" />
+                                                ) : contactOrder.boatyardName ? (
+                                                    <User className="h-4 w-4" />
+                                                ) : (
+                                                    <User className="h-4 w-4" />
+                                                )}
+                                                <span>Tên người đặt</span>
+                                            </div>
+                                            <p className="text-base font-semibold pl-6">
+                                                {contactOrder.shipName || contactOrder.boatyardName || 'Chưa có thông tin'}
+                                            </p>
+                                        </div>
+
+                                        <Separator />
+
+                                        {/* Phone Number */}
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                <Phone className="h-4 w-4" />
+                                                <span>Số điện thoại</span>
+                                            </div>
+                                            {contactOrder.phone ? (
+                                                <a
+                                                    href={`tel:${contactOrder.phone}`}
+                                                    className="text-base font-semibold pl-6 text-primary hover:underline flex items-center gap-2"
+                                                >
+                                                    {contactOrder.phone}
+                                                </a>
+                                            ) : (
+                                                <p className="text-base text-muted-foreground pl-6">Chưa có thông tin</p>
+                                            )}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <p className="text-center text-muted-foreground py-4">Không có thông tin</p>
+                                )}
+                            </div>
+                            <DialogFooter>
+                                {contactOrder?.phone && (
+                                    <Button
+                                        asChild
+                                        className="flex-1"
+                                    >
+                                        <a href={`tel:${contactOrder.phone}`}>
+                                            <Phone className="h-4 w-4 mr-2" />
+                                            Gọi ngay
+                                        </a>
+                                    </Button>
+                                )}
+                                <Button variant="outline" onClick={closeContact}>
+                                    Đóng
                                 </Button>
-                            )}
-                            <Button variant="outline" onClick={closeContact}>
-                                Đóng
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                 </CardContent>
             </Card>
         </div>

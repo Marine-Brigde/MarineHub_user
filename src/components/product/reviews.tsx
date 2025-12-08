@@ -8,6 +8,7 @@ import { Star, MessageCircle, User } from "lucide-react"
 import { getProductReviewsApi, createProductReviewApi } from "@/api/Product/reviewApi"
 import { getBoatyardDetailApi } from "@/api/boatyardApi/boatyardApi"
 import type { Review } from "@/types/Product/review"
+import { useToast } from "@/hooks/use-toast"
 
 type Props = {
     productId: string
@@ -16,6 +17,7 @@ type Props = {
 }
 
 export default function ProductReviews({ productId, productBoatyardId, productAccountId }: Props) {
+    const { toast } = useToast()
     const [reviews, setReviews] = useState<Review[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -120,7 +122,13 @@ export default function ProductReviews({ productId, productBoatyardId, productAc
             // Check for 400 status error = user hasn't purchased the product
             const statusCode = err?.response?.status || err?.response?.data?.status
             if (statusCode === 400) {
-                setReviewError("Bạn chưa mua sản phẩm này nên không thể đánh giá")
+                const errorMsg = "Bạn chưa mua sản phẩm này nên không thể đánh giá"
+                setReviewError(errorMsg)
+                toast({
+                    title: "Không thể đánh giá",
+                    description: errorMsg,
+                    variant: "destructive",
+                })
             } else {
                 // Get detailed message from API response - try data first, then message
                 let errorMsg = "Không thể tạo đánh giá"
@@ -132,6 +140,11 @@ export default function ProductReviews({ productId, productBoatyardId, productAc
                     errorMsg = err.message
                 }
                 setReviewError(errorMsg)
+                toast({
+                    title: "Lỗi",
+                    description: errorMsg,
+                    variant: "destructive",
+                })
             }
             // Keep form open to show error message
             setShowForm(true)

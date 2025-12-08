@@ -14,6 +14,7 @@ import type { OtpRequest } from "@/models/Auth"
 import { createSupplierApi } from "@/api/supplierApi"
 import { authApi } from "@/api/authApi"
 import { MapComponent } from "../map/MapComponent"
+import { useToast } from "@/hooks/use-toast"
 
 const BANKS = [
     "Vietcombank",
@@ -30,6 +31,7 @@ type SupplierFormData = Omit<SupplierRequest, "otp">
 
 export function SupplierRegisterForm() {
     const navigate = useNavigate()
+    const { toast } = useToast()
     const [showPassword, setShowPassword] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState("")
@@ -98,8 +100,19 @@ export function SupplierRegisterForm() {
             if (httpStatus === 201 || httpStatus === 200 || body?.status === 201 || body?.status === 200) {
                 setOtpSent(true)
                 setSuccess(msg)
+                toast({
+                    title: "Thành công",
+                    description: msg,
+                    variant: "success",
+                })
             } else {
-                setError(msg || "Lỗi khi gửi OTP")
+                const errMsg = msg || "Lỗi khi gửi OTP"
+                setError(errMsg)
+                toast({
+                    title: "Lỗi",
+                    description: errMsg,
+                    variant: "destructive",
+                })
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
@@ -107,6 +120,11 @@ export function SupplierRegisterForm() {
             const resp = err?.response?.data ?? err?.response ?? err
             const message = extractServerMessage(resp) || err?.message || "Lỗi kết nối mạng"
             setError(message)
+            toast({
+                title: "Lỗi",
+                description: message,
+                variant: "destructive",
+            })
         }
         setOtpLoading(false)
     }
@@ -214,13 +232,24 @@ export function SupplierRegisterForm() {
         const result = await registerSupplier(otp)
         console.log("Registration Result:", result)
         if (result.success) {
-            setSuccess(result.message ?? "Đăng ký thành công! Đang chuyển hướng...")
+            const successMsg = result.message ?? "Đăng ký thành công!"
+            setSuccess(successMsg)
+            toast({
+                title: "Thành công",
+                description: successMsg,
+                variant: "success",
+            })
             setTimeout(() => {
                 navigate("/supplier/dashboard")
             }, 1500)
         } else {
-            // show exact server message (data or data.message) when available
-            setError(result.error || "Có lỗi xảy ra khi đăng ký")
+            const errMsg = result.error || "Có lỗi xảy ra khi đăng ký"
+            setError(errMsg)
+            toast({
+                title: "Lỗi",
+                description: errMsg,
+                variant: "destructive",
+            })
         }
         setIsLoading(false)
     }

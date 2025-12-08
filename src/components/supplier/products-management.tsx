@@ -29,6 +29,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Plus, Edit, Search, Loader2, Trash2, X, ChevronLeft, ChevronRight } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 import { getSupplierProductsApi, createSupplierProductApi, updateSupplierProductApi, deleteSupplierProductApi } from "@/api/Product/supplierProductApi"
 import { getProductByIdApi } from '@/api/Product/productApi'
@@ -67,6 +68,7 @@ const extractError = (err: unknown) => {
 
 
 export default function ProductsManagement() {
+    const { toast } = useToast()
     const [products, setProducts] = useState<Product[]>([])
     const [loading, setLoading] = useState(false)
     const [categories, setCategories] = useState<Category[]>([])
@@ -364,9 +366,18 @@ export default function ProductsManagement() {
 
         try {
             await deleteSupplierProductApi(id)
+            toast({
+                title: "Thành công",
+                description: "Xóa sản phẩm thành công",
+                variant: "success",
+            })
             fetchProducts()
         } catch (err: unknown) {
-            alert(extractError(err))
+            toast({
+                title: "Lỗi",
+                description: extractError(err),
+                variant: "destructive",
+            })
         }
     }
 

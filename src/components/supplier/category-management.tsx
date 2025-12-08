@@ -24,6 +24,7 @@ import { Plus, Edit, Search, Loader2, Eye } from "lucide-react"
 import { getCategoriesApi, createCategoryApi, updateCategoryApi } from "@/api/Category/categoryApi"
 import type { Category, CreateCategoryRequest, UpdateCategoryRequest } from "@/types/Category/category"
 import { Switch } from "../ui/switch"
+import { useToast } from "@/hooks/use-toast"
 
 const shortText = (s?: string, n = 80) => (s && s.length > n ? s.slice(0, n) + "…" : s || "")
 
@@ -39,6 +40,7 @@ const extractError = (err: unknown) => {
 }
 
 export default function CategoryManagement() {
+    const { toast } = useToast()
     const [categories, setCategories] = useState<Category[]>([])
     const [loading, setLoading] = useState(false)
 
@@ -171,6 +173,11 @@ export default function CategoryManagement() {
                     image: imageFile ?? undefined,
                 }
                 await updateCategoryApi(editCategory.id, payload)
+                toast({
+                    title: "Thành công",
+                    description: "Danh mục đã được cập nhật",
+                    variant: "success",
+                })
             } else {
                 const payload: CreateCategoryRequest = {
                     name: trimmedName,
@@ -178,12 +185,23 @@ export default function CategoryManagement() {
                     image: imageFile ?? undefined,
                 }
                 await createCategoryApi(payload)
+                toast({
+                    title: "Thành công",
+                    description: "Danh mục đã được tạo",
+                    variant: "success",
+                })
             }
             setShowDialog(false)
             setEditCategory(null)
             fetchCategories()
         } catch (err: unknown) {
-            setFormError(extractError(err))
+            const errorMsg = extractError(err)
+            setFormError(errorMsg)
+            toast({
+                title: "Lỗi",
+                description: errorMsg,
+                variant: "destructive",
+            })
         } finally {
             setFormLoading(false)
         }
@@ -207,9 +225,14 @@ export default function CategoryManagement() {
             await updateCategoryApi(c.id, payload)
             // ensure server state reflected
             fetchCategories()
-        } catch {
+        } catch (err: unknown) {
             // rollback on error
             setCategories((prev) => prev.map((p) => (p.id === c.id ? { ...p, isActive: c.isActive } : p)))
+            toast({
+                title: "Lỗi",
+                description: "Không thể cập nhật trạng thái danh mục",
+                variant: "destructive",
+            })
         } finally {
             setToggleLoading(null)
         }

@@ -18,6 +18,7 @@ import { createBoatyardApi } from "@/api/boatyardApi/boatyardApi"
 import { format } from "date-fns"
 import { vi } from "date-fns/locale"
 import { MapComponent } from "../map/MapComponent"
+import { useToast } from "@/hooks/use-toast"
 
 type BoatyardFormData = Omit<BoatyardRequest, "otp" | "dockSlots">
 
@@ -76,6 +77,7 @@ const getErrorMessage = (err: unknown): string => {
 
 export function BoatyardRegisterForm() {
     const navigate = useNavigate()
+    const { toast } = useToast()
     const [currentStep, setCurrentStep] = useState(1)
     const [showPassword, setShowPassword] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
@@ -171,12 +173,29 @@ export function BoatyardRegisterForm() {
                 setOtpSent(true)
                 setSuccess(msg)
                 setCountdown(180) // 3 phút
+                toast({
+                    title: "Thành công",
+                    description: msg,
+                    variant: "success",
+                })
             } else {
-                setError(msg || "Lỗi khi gửi OTP")
+                const errMsg = msg || "Lỗi khi gửi OTP"
+                setError(errMsg)
+                toast({
+                    title: "Lỗi",
+                    description: errMsg,
+                    variant: "destructive",
+                })
             }
         } catch (err: unknown) {
             console.error("Lỗi khi gửi OTP:", err)
-            setError(getErrorMessage(err))
+            const errorMsg = getErrorMessage(err)
+            setError(errorMsg)
+            toast({
+                title: "Lỗi",
+                description: errorMsg,
+                variant: "destructive",
+            })
         }
         setOtpLoading(false)
     }
@@ -355,12 +374,24 @@ export function BoatyardRegisterForm() {
 
         const result = await registerBoatyard(otp)
         if (result.success) {
-            setSuccess("Đăng ký xưởng thành công! Đang chuyển hướng...")
+            const successMsg = "Đăng ký xưởng thành công!"
+            setSuccess(successMsg)
+            toast({
+                title: "Thành công",
+                description: successMsg,
+                variant: "success",
+            })
             setTimeout(() => {
                 navigate("/login")
             }, 2000)
         } else {
-            setError(result.error || "Có lỗi xảy ra")
+            const errMsg = result.error || "Có lỗi xảy ra"
+            setError(errMsg)
+            toast({
+                title: "Lỗi",
+                description: errMsg,
+                variant: "destructive",
+            })
         }
         setIsLoading(false)
     }
@@ -382,12 +413,24 @@ export function BoatyardRegisterForm() {
 
         const result = await registerBoatyard(otp)
         if (result.success) {
-            setSuccess('Đăng ký xưởng thành công! Đang chuyển hướng...')
+            const successMsg = 'Đăng ký xưởng thành công!'
+            setSuccess(successMsg)
+            toast({
+                title: "Thành công",
+                description: successMsg,
+                variant: "success",
+            })
             setTimeout(() => {
                 navigate('/login')
             }, 2000)
         } else {
-            setError(result.error || 'Có lỗi xảy ra')
+            const errMsg = result.error || 'Có lỗi xảy ra'
+            setError(errMsg)
+            toast({
+                title: "Lỗi",
+                description: errMsg,
+                variant: "destructive",
+            })
         }
         setIsLoading(false)
     }

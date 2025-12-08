@@ -10,6 +10,7 @@ import { Eye, EyeOff, LogIn } from "lucide-react";
 import { authApi } from "@/api/authApi";
 import type { LoginRequest, LoginResponseData } from "@/models/Auth";
 import type { ApiResponse } from "@/types/api";
+import { useToast } from "@/hooks/use-toast";
 
 interface LoginFormProps {
     onLoadingChange: (loading: boolean) => void;
@@ -23,9 +24,21 @@ export function LoginForm({ onLoadingChange }: LoginFormProps) {
     });
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
+    const { toast } = useToast();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validation tiếng Việt
+        if (!formData.usernameOrEmail.trim()) {
+            setError("Vui lòng nhập tên đăng nhập hoặc email");
+            return;
+        }
+        if (!formData.password.trim()) {
+            setError("Vui lòng nhập mật khẩu");
+            return;
+        }
+
         onLoadingChange(true); // Bắt đầu loading
         setError(null);
 
@@ -41,6 +54,12 @@ export function LoginForm({ onLoadingChange }: LoginFormProps) {
             localStorage.setItem("username", loginData.data.username);
             localStorage.setItem("email", loginData.data.email);
 
+            toast({
+                title: "Đăng nhập thành công",
+                description: `Chào mừng, ${loginData.data.username}!`,
+                variant: "success",
+            });
+
             switch (loginData.data.role) {
                 case "Supplier":
                     navigate("/supplier/dashboard");
@@ -52,7 +71,16 @@ export function LoginForm({ onLoadingChange }: LoginFormProps) {
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
-            setError(err.message || "Đăng nhập thất bại. Vui lòng kiểm tra thông tin đăng nhập.");
+            console.error('Login error:', err);
+
+            // Check for 404 status - wrong username/password
+            if (err?.response?.status === 404 || err?.response?.data?.status === 404) {
+                setError("Tên đăng nhập hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.");
+            } else {
+                // Get detailed error message from API or fallback
+                const errorMsg = err?.response?.data?.data || err?.response?.data?.message || err?.message || "Đăng nhập thất bại. Vui lòng thử lại.";
+                setError(errorMsg);
+            }
         } finally {
             onLoadingChange(false); // Kết thúc loading
         }
@@ -70,7 +98,6 @@ export function LoginForm({ onLoadingChange }: LoginFormProps) {
                     placeholder="Nhập tên đăng nhập hoặc email"
                     value={formData.usernameOrEmail}
                     onChange={(e) => setFormData((prev) => ({ ...prev, usernameOrEmail: e.target.value }))}
-                    required
                 />
             </div>
 
@@ -83,7 +110,6 @@ export function LoginForm({ onLoadingChange }: LoginFormProps) {
                         placeholder="Nhập mật khẩu"
                         value={formData.password}
                         onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
-                        required
                     />
                     <Button
                         type="button"

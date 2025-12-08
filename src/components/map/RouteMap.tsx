@@ -149,7 +149,7 @@ export default function RouteMap({ start, end, className, animate = true }: Rout
                         try { (m.getSource('route-line') as any).setData(routeGeo); } catch (e) { }
                     } else {
                         try { m.addSource('route-line', { type: 'geojson', data: routeGeo as any }); } catch (e) { }
-                        try { m.addLayer({ id: 'route-line', type: 'line', source: 'route-line', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#2563EB', 'line-width': 4, 'line-opacity': 0.9 } }); } catch (e) { }
+                        try { m.addLayer({ id: 'route-line', type: 'line', source: 'route-line', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#2563EB', 'line-width': 8, 'line-opacity': 0.9 } }); } catch (e) { }
                     }
                 } catch (e) { }
             }
@@ -216,7 +216,7 @@ export default function RouteMap({ start, end, className, animate = true }: Rout
                             total += d;
                         }
 
-                        const duration = 40000;
+                        const duration = 100000; // 120 seconds (2 minutes) - much slower
                         let startTime: number | null = null;
 
                         const step = (timestamp: number) => {
@@ -237,7 +237,23 @@ export default function RouteMap({ start, end, className, animate = true }: Rout
                             const segT = segDist === 0 ? 0 : (travel - acc) / segDist;
                             const lng = segStart[0] + (segEnd[0] - segStart[0]) * segT;
                             const lat = segStart[1] + (segEnd[1] - segStart[1]) * segT;
-                            try { if (shipMarkerRef.current) shipMarkerRef.current.setLngLat([lng, lat]); } catch (e) { }
+                            try {
+                                if (shipMarkerRef.current && m) {
+                                    shipMarkerRef.current.setLngLat([lng, lat]);
+
+                                    // Check if ship is outside current viewport
+                                    const bounds = m.getBounds();
+                                    const shipIsVisible = bounds.contains([lng, lat]);
+
+                                    // If ship moved outside viewport, smoothly pan camera back to ship
+                                    if (!shipIsVisible) {
+                                        m.easeTo({
+                                            center: [lng, lat],
+                                            duration: 1000, // Smooth 1 second animation
+                                        });
+                                    }
+                                }
+                            } catch (e) { }
                             if (t < 1) rafRef.current = requestAnimationFrame(step);
                         };
                         rafRef.current = requestAnimationFrame(step);

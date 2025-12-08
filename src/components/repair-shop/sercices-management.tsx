@@ -28,8 +28,10 @@ import type {
     BoatyardServiceRequest,
     BoatyardServiceUpdateRequest,
 } from "@/types/boatyardService/boatyardService"
+import { useToast } from "@/hooks/use-toast"
 
 export function ServicesManagement() {
+    const { toast } = useToast()
     const [searchTerm, setSearchTerm] = useState("")
     const [services, setServices] = useState<BoatyardService[]>([])
     const [loading, setLoading] = useState(false)
@@ -93,16 +95,32 @@ export function ServicesManagement() {
                     isActive: editService.isActive,
                 }
                 await updateBoatyardServiceApi(editService.id, updateData)
+                toast({
+                    title: "Thành công",
+                    description: "Dịch vụ đã được cập nhật",
+                    variant: "success",
+                })
             } else {
                 const createData: BoatyardServiceRequest = { typeService, price }
                 await createBoatyardServiceApi(createData)
+                toast({
+                    title: "Thành công",
+                    description: "Dịch vụ đã được tạo",
+                    variant: "success",
+                })
             }
             setShowForm(false)
             setEditService(null)
             fetchServices()
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
-            setFormError(err?.message || "Có lỗi xảy ra")
+            const errorMsg = err?.message || "Có lỗi xảy ra"
+            setFormError(errorMsg)
+            toast({
+                title: "Lỗi",
+                description: errorMsg,
+                variant: "destructive",
+            })
         }
         setFormLoading(false)
     }
@@ -115,10 +133,19 @@ export function ServicesManagement() {
                 price: service.price,
                 isActive: !service.isActive,
             })
+            toast({
+                title: "Thành công",
+                description: "Trạng thái dịch vụ đã được cập nhật",
+                variant: "success",
+            })
             fetchServices()
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (err) {
-            // Xử lý lỗi nếu cần
+            toast({
+                title: "Lỗi",
+                description: "Không thể cập nhật trạng thái dịch vụ",
+                variant: "destructive",
+            })
         }
     }
 

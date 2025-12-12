@@ -44,7 +44,9 @@ export const createSupplierProductApi = async (data: CreateProductRequest) => {
     formData.append('Name', data.name)
     formData.append('Description', data.description)
     formData.append('CategoryId', data.categoryId)
-    formData.append('Price', data.price.toString())
+    if (data.price !== null) {
+        formData.append('Price', data.price.toString())
+    }
     formData.append('IsHasVariant', data.isHasVariant.toString())
 
     // Append ProductVariants as array of objects for .NET model binding
@@ -98,7 +100,9 @@ export const updateSupplierProductApi = async (id: string, data: UpdateProductRe
     if (data.name) formData.append('Name', data.name)
     if (data.description) formData.append('Description', data.description)
     if (data.categoryId) formData.append('CategoryId', data.categoryId)
-    if (data.price !== undefined) formData.append('Price', data.price.toString())
+    if (data.price !== undefined && data.price !== null) {
+        formData.append('Price', data.price.toString())
+    }
     if (data.isHasVariant !== undefined) formData.append('IsHasVariant', data.isHasVariant.toString())
 
     // Append ProductVariants if provided (for .NET model binding)

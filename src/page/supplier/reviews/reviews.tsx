@@ -40,7 +40,7 @@ export default function SupplierReviewsPage() {
     const [error, setError] = useState("")
     const [productSearchTerm, setProductSearchTerm] = useState("")
     const [reviewSearchTerm, setReviewSearchTerm] = useState("")
-    
+
     // Pagination
     const [page, setPage] = useState(1)
     const [size] = useState(10)
@@ -73,11 +73,11 @@ export default function SupplierReviewsPage() {
                 sortBy: 'name',
                 isAsc: true
             })
-            
+
             const data = (response as any)?.data ?? response
             const items = data?.items ?? []
             setProducts(items)
-            
+
             // Auto-select first product if available
             if (items.length > 0 && !selectedProductId) {
                 setSelectedProductId(items[0].id)
@@ -103,10 +103,10 @@ export default function SupplierReviewsPage() {
                 sortBy: 'createdDate',
                 isAsc: false
             })
-            
+
             const data = (response as any)?.data ?? response
             const items = data?.items ?? []
-            
+
             // Filter by search term if provided (client-side filtering for now)
             // TODO: Implement server-side search if API supports it
             let filteredItems = items
@@ -116,7 +116,7 @@ export default function SupplierReviewsPage() {
                     review.userName?.toLowerCase().includes(reviewSearchTerm.toLowerCase())
                 )
             }
-            
+
             setReviews(filteredItems)
             setTotal(data?.total ?? 0)
             setTotalPages(data?.totalPages ?? 0)
@@ -166,11 +166,10 @@ export default function SupplierReviewsPage() {
                 {[1, 2, 3, 4, 5].map((star) => (
                     <Star
                         key={star}
-                        className={`h-4 w-4 ${
-                            star <= rating
+                        className={`h-4 w-4 ${star <= rating
                                 ? "fill-yellow-400 text-yellow-400"
                                 : "fill-gray-200 text-gray-200"
-                        }`}
+                            }`}
                     />
                 ))}
                 <span className="ml-1 text-sm font-medium text-muted-foreground">
@@ -193,9 +192,9 @@ export default function SupplierReviewsPage() {
     }))
 
     return (
-        <div className="container mx-auto py-6 px-4 space-y-6">
+        <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <Breadcrumb>
                         <BreadcrumbList>
@@ -208,7 +207,7 @@ export default function SupplierReviewsPage() {
                             </BreadcrumbItem>
                         </BreadcrumbList>
                     </Breadcrumb>
-                    <div className="flex items-center gap-4 mt-2">
+                    <div className="flex items-center gap-3 mt-2 flex-wrap">
                         <SidebarTrigger />
                         <h1 className="text-3xl font-bold text-foreground">Đánh giá & Phản hồi</h1>
                     </div>
@@ -278,11 +277,10 @@ export default function SupplierReviewsPage() {
                                     .map((product) => (
                                         <Card
                                             key={product.id}
-                                            className={`cursor-pointer transition-all hover:shadow-lg ${
-                                                selectedProductId === product.id
+                                            className={`cursor-pointer transition-all hover:shadow-lg ${selectedProductId === product.id
                                                     ? "ring-2 ring-primary border-primary"
                                                     : "hover:border-primary/50"
-                                            }`}
+                                                }`}
                                             onClick={() => handleProductChange(product.id)}
                                         >
                                             <div className="relative aspect-square overflow-hidden rounded-t-lg bg-muted">
@@ -327,7 +325,7 @@ export default function SupplierReviewsPage() {
                             {/* Selected Product Info */}
                             {selectedProduct && (
                                 <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
-                                    <div className="flex items-start gap-4">
+                                    <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
                                         <div className="relative h-16 w-16 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
                                             <img
                                                 src={selectedProduct.imageUrl || "/placeholder.svg"}
@@ -361,7 +359,7 @@ export default function SupplierReviewsPage() {
             {selectedProductId && (
                 <>
                     {/* Stats Cards */}
-                    <div className="grid gap-4 md:grid-cols-4">
+                    <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">Tổng đánh giá</CardTitle>
@@ -431,7 +429,7 @@ export default function SupplierReviewsPage() {
                                                     />
                                                 </div>
                                             </div>
-                                            <div className="text-sm text-muted-foreground w-20 text-right">
+                                            <div className="text-xs sm:text-sm text-muted-foreground w-20 text-right">
                                                 {count} ({percentage.toFixed(0)}%)
                                             </div>
                                         </div>
@@ -514,7 +512,7 @@ export default function SupplierReviewsPage() {
                                             className="hover:shadow-md transition-shadow"
                                         >
                                             <CardContent className="pt-6">
-                                                <div className="flex items-start gap-4">
+                                                <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
                                                     <Avatar className="h-10 w-10">
                                                         <AvatarImage
                                                             src={review.userAvatar}
@@ -557,7 +555,7 @@ export default function SupplierReviewsPage() {
                             {totalPages > 1 && (
                                 <>
                                     <Separator className="my-6" />
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                         <div className="text-sm text-muted-foreground">
                                             Trang {page} / {totalPages} ({total} đánh giá)
                                         </div>

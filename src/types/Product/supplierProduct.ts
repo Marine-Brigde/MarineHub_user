@@ -37,7 +37,7 @@ export interface CreateProductRequest {
     name: string
     description: string
     categoryId: string
-    price: number
+    price: number | null
     isHasVariant: boolean
     productVariants: ProductVariant[]
     productImages: File[]
@@ -47,7 +47,7 @@ export interface UpdateProductRequest {
     name?: string
     description?: string
     categoryId?: string
-    price?: number
+    price?: number | null
     isHasVariant?: boolean
     productVariants?: ProductVariant[]
     productImages?: File[]

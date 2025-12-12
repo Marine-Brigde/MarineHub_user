@@ -290,11 +290,22 @@ export default function ProductsManagement() {
             return
         }
 
+        // Validate price: required only if NOT creating with variants
         const priceNum = parseFloat(price)
-        if (!price || isNaN(priceNum) || priceNum <= 0) {
-            setFormError("Giá sản phẩm phải là số dương")
-            setFormLoading(false)
-            return
+        if (!isHasVariant) {
+            // No variants: price is required
+            if (!price || isNaN(priceNum) || priceNum <= 0) {
+                setFormError("Giá sản phẩm phải là số dương")
+                setFormLoading(false)
+                return
+            }
+        } else {
+            // Has variants: price is optional, but if provided must be valid
+            if (price && (isNaN(priceNum) || priceNum <= 0)) {
+                setFormError("Giá sản phẩm phải là số dương")
+                setFormLoading(false)
+                return
+            }
         }
 
         if (isHasVariant) {
@@ -331,7 +342,7 @@ export default function ProductsManagement() {
                     name: trimmedName,
                     description,
                     categoryId,
-                    price: priceNum,
+                    price: isHasVariant ? undefined : (price ? priceNum : undefined),
                     isHasVariant,
                     productVariants: isHasVariant ? productVariants : undefined,
                     productImages: productImages.length > 0 ? productImages : undefined,
@@ -342,7 +353,7 @@ export default function ProductsManagement() {
                     name: trimmedName,
                     description,
                     categoryId,
-                    price: priceNum,
+                    price: isHasVariant ? null : priceNum,
                     isHasVariant,
                     productVariants: isHasVariant ? productVariants : [],
                     productImages,
@@ -613,85 +624,103 @@ export default function ProductsManagement() {
                                 </Select>
                             </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="product-price">Giá sản phẩm (VND) *</Label>
-                                <Input
-                                    id="product-price"
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={price}
-                                    onChange={(e) => setPrice(e.target.value)}
-                                    placeholder="Nhập giá sản phẩm..."
-                                    required
-                                />
-                            </div>
+                            {!isHasVariant && (
+                                <div className="grid gap-2">
+                                    <Label htmlFor="product-price">Giá sản phẩm (VND) *</Label>
+                                    <Input
+                                        id="product-price"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={price}
+                                        onChange={(e) => setPrice(e.target.value)}
+                                        placeholder="Nhập giá sản phẩm..."
+                                        required={!editProduct && !isHasVariant}
+                                    />
+                                </div>
+                            )}
 
-                            <div className="flex items-center gap-3">
-                                <Switch
-                                    checked={isHasVariant}
-                                    onCheckedChange={(checked) => {
-                                        setIsHasVariant(checked)
-                                        // Tự động thêm 1 biến thể mặc định khi bật switch
-                                        if (checked && productVariants.length === 0) {
-                                            setProductVariants([{ name: "", price: 0 }])
-                                        } else if (!checked) {
-                                            // Xóa tất cả biến thể khi tắt switch
-                                            setProductVariants([])
-                                        }
-                                    }}
-                                />
-                                <Label>Sản phẩm có biến thể</Label>
-                            </div>
+                            {!isHasVariant && (
+                                <div className="flex items-center gap-3">
+                                    <Switch
+                                        checked={isHasVariant}
+                                        onCheckedChange={(checked) => {
+                                            setIsHasVariant(checked)
+                                            // Tự động thêm 1 biến thể mặc định khi bật switch
+                                            if (checked && productVariants.length === 0) {
+                                                setProductVariants([{ name: "", price: 0 }])
+                                            } else if (!checked) {
+                                                // Xóa tất cả biến thể khi tắt switch
+                                                setProductVariants([])
+                                            }
+                                        }}
+                                    />
+                                    <Label>Sản phẩm có biến thể</Label>
+                                </div>
+                            )}
 
                             {isHasVariant && (
-                                <div className="grid gap-3 p-4 border rounded-md">
-                                    <div className="flex items-center justify-between">
-                                        <Label>Biến thể sản phẩm *</Label>
-                                        <Button type="button" variant="outline" size="sm" onClick={addVariant}>
-                                            <Plus className="h-4 w-4 mr-2" />
-                                            Thêm biến thể
-                                        </Button>
+                                <div className="space-y-3 p-4 border-2 border-primary/20 rounded-lg bg-primary/5">
+                                    <div className="flex items-center gap-3">
+                                        <Switch
+                                            checked={isHasVariant}
+                                            onCheckedChange={(checked) => {
+                                                setIsHasVariant(checked)
+                                                if (!checked) {
+                                                    setProductVariants([])
+                                                }
+                                            }}
+                                        />
+                                        <Label>Sản phẩm có biến thể</Label>
                                     </div>
-                                    {productVariants.map((variant, index) => (
-                                        <div key={index} className="flex gap-2 items-end p-3 border rounded-md bg-muted/20">
-                                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
-                                                {index + 1}
-                                            </div>
-                                            <div className="flex-1 grid gap-2">
-                                                <Label>Tên biến thể {index + 1}</Label>
-                                                <Input
-                                                    value={variant.name}
-                                                    onChange={(e) => updateVariant(index, 'name', e.target.value)}
-                                                    placeholder="Nhập tên biến thể..."
-                                                />
-                                            </div>
-                                            <div className="flex-1 grid gap-2">
-                                                <Label>Giá (VND) {index + 1}</Label>
-                                                <Input
-                                                    type="number"
-                                                    step="0.01"
-                                                    min="0"
-                                                    value={variant.price}
-                                                    onChange={(e) => updateVariant(index, 'price', parseFloat(e.target.value) || 0)}
-                                                    placeholder="Nhập giá biến thể..."
-                                                />
-                                            </div>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => removeVariant(index)}
-                                                className="flex-shrink-0"
-                                                title="Xóa biến thể"
-                                            >
-                                                <X className="h-4 w-4" />
+                                    <div className="grid gap-3 p-4 border rounded-md bg-background">
+                                        <div className="flex items-center justify-between">
+                                            <Label>Biến thể sản phẩm *</Label>
+                                            <Button type="button" variant="outline" size="sm" onClick={addVariant}>
+                                                <Plus className="h-4 w-4 mr-2" />
+                                                Thêm biến thể
                                             </Button>
                                         </div>
-                                    ))}
-                                    {productVariants.length === 0 && (
-                                        <p className="text-sm text-muted-foreground">Chưa có biến thể. Vui lòng thêm ít nhất một biến thể.</p>
-                                    )}
+                                        {productVariants.map((variant, index) => (
+                                            <div key={index} className="flex gap-2 items-end p-3 border rounded-md bg-muted/20">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
+                                                    {index + 1}
+                                                </div>
+                                                <div className="flex-1 grid gap-2">
+                                                    <Label>Tên biến thể {index + 1}</Label>
+                                                    <Input
+                                                        value={variant.name}
+                                                        onChange={(e) => updateVariant(index, 'name', e.target.value)}
+                                                        placeholder="Nhập tên biến thể..."
+                                                    />
+                                                </div>
+                                                <div className="flex-1 grid gap-2">
+                                                    <Label>Giá (VND) {index + 1}</Label>
+                                                    <Input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        value={variant.price}
+                                                        onChange={(e) => updateVariant(index, 'price', parseFloat(e.target.value) || 0)}
+                                                        placeholder="Nhập giá biến thể..."
+                                                    />
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => removeVariant(index)}
+                                                    className="flex-shrink-0"
+                                                    title="Xóa biến thể"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                        {productVariants.length === 0 && (
+                                            <p className="text-sm text-muted-foreground">Chưa có biến thể. Vui lòng thêm ít nhất một biến thể.</p>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 

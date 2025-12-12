@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Star, MessageCircle, User } from "lucide-react"
+import { Star, MessageCircle, User, ChevronDown } from "lucide-react"
 import { getProductReviewsApi, createProductReviewApi } from "@/api/Product/reviewApi"
 import { getBoatyardDetailApi } from "@/api/boatyardApi/boatyardApi"
 import type { Review } from "@/types/Product/review"
@@ -19,16 +19,21 @@ type Props = {
 export default function ProductReviews({ productId, productBoatyardId, productAccountId }: Props) {
     const { toast } = useToast()
     const [reviews, setReviews] = useState<Review[]>([])
+    const [displayedReviews, setDisplayedReviews] = useState<Review[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [isOwnBoatyard, setIsOwnBoatyard] = useState(false)
     const [boatAccountId, setBoatAccountId] = useState<string | null>(null)
+    const [currentPage, setCurrentPage] = useState(1)
+    const [hasMore, setHasMore] = useState(false)
 
     const [newRating, setNewRating] = useState<number>(5)
     const [newComment, setNewComment] = useState<string>("")
     const [submitting, setSubmitting] = useState(false)
     const [showForm, setShowForm] = useState(false)
     const [reviewError, setReviewError] = useState<string | null>(null)
+
+    const REVIEWS_PER_PAGE = 5
 
     useEffect(() => {
         setLoading(true)
@@ -49,6 +54,7 @@ export default function ProductReviews({ productId, productBoatyardId, productAc
                         createdAt: it.createdDate || it.createdAt || new Date().toISOString(),
                     }))
                     setReviews(mapped)
+                    updateDisplayedReviews(mapped, 1)
                 } catch {
                     setReviews([])
                 }
@@ -78,6 +84,19 @@ export default function ProductReviews({ productId, productBoatyardId, productAc
             })
             .finally(() => setLoading(false))
     }, [productId, productBoatyardId, productAccountId])
+
+    const updateDisplayedReviews = (allReviews: Review[], page: number) => {
+        const startIdx = (page - 1) * REVIEWS_PER_PAGE
+        const endIdx = startIdx + REVIEWS_PER_PAGE
+        setDisplayedReviews(allReviews.slice(0, endIdx))
+        setHasMore(endIdx < allReviews.length)
+        setCurrentPage(page)
+    }
+
+    const handleLoadMore = () => {
+        const nextPage = currentPage + 1
+        updateDisplayedReviews(reviews, nextPage)
+    }
 
     const avgRating = () => {
         if (!reviews || reviews.length === 0) return null
@@ -347,55 +366,72 @@ export default function ProductReviews({ productId, productBoatyardId, productAc
                                 <p className="text-sm text-muted-foreground">Chưa có đánh giá nào cho sản phẩm này.</p>
                             </div>
                         ) : (
-                            <div className="space-y-3">
-                                {reviews.map((review) => (
-                                    <div
-                                        key={review.id}
-                                        className="p-3 rounded-lg border border-border/50 hover:border-border transition-colors bg-card/50 hover:bg-card/80"
-                                    >
-                                        <div className="flex gap-3">
-                                            <div className="flex-shrink-0">
-                                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-                                                    {review.userAvatar ? (
-                                                        <img
-                                                            src={review.userAvatar || "/placeholder.svg"}
-                                                            alt={review.userName}
-                                                            className="w-full h-full rounded-full object-cover"
-                                                        />
-                                                    ) : (
-                                                        <User className="h-4 w-4 text-white" />
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <div className="flex-1">
-                                                <div className="flex items-start justify-between gap-2">
-                                                    <div>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="font-medium text-sm text-foreground">
-                                                                {review.userName || "Người dùng"}
-                                                            </span>
-                                                            {review.userId && boatAccountId && review.userId === boatAccountId && (
-                                                                <Badge variant="secondary" className="text-xs">
-                                                                    Chủ xưởng
-                                                                </Badge>
-                                                            )}
-                                                        </div>
-                                                        <div className="flex items-center gap-2 mt-1">
-                                                            {renderStars(review.rating)}
-                                                            <span className="text-xs text-muted-foreground">
-                                                                {new Date(review.createdAt).toLocaleDateString("vi-VN")}
-                                                            </span>
-                                                        </div>
+                            <>
+                                <div className="space-y-3">
+                                    {displayedReviews.map((review) => (
+                                        <div
+                                            key={review.id}
+                                            className="p-3 rounded-lg border border-border/50 hover:border-border transition-colors bg-card/50 hover:bg-card/80"
+                                        >
+                                            <div className="flex gap-3">
+                                                <div className="flex-shrink-0">
+                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+                                                        {review.userAvatar ? (
+                                                            <img
+                                                                src={review.userAvatar || "/placeholder.svg"}
+                                                                alt={review.userName}
+                                                                className="w-full h-full rounded-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <User className="h-4 w-4 text-white" />
+                                                        )}
                                                     </div>
                                                 </div>
 
-                                                <p className="text-sm text-foreground/80 mt-2 leading-relaxed">{review.comment}</p>
+                                                <div className="flex-1">
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-medium text-sm text-foreground">
+                                                                    {review.userName || "Người dùng"}
+                                                                </span>
+                                                                {review.userId && boatAccountId && review.userId === boatAccountId && (
+                                                                    <Badge variant="secondary" className="text-xs">
+                                                                        Chủ xưởng
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex items-center gap-2 mt-1">
+                                                                {renderStars(review.rating)}
+                                                                <span className="text-xs text-muted-foreground">
+                                                                    {new Date(review.createdAt).toLocaleDateString("vi-VN")}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <p className="text-sm text-foreground/80 mt-2 leading-relaxed">{review.comment}</p>
+                                                </div>
                                             </div>
                                         </div>
+                                    ))}
+                                </div>
+
+                                {/* Load More Button */}
+                                {hasMore && (
+                                    <div className="flex justify-center pt-4">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleLoadMore}
+                                            className="gap-2 bg-transparent"
+                                        >
+                                            <ChevronDown className="h-4 w-4" />
+                                            Xem thêm ({reviews.length - displayedReviews.length} đánh giá còn lại)
+                                        </Button>
                                     </div>
-                                ))}
-                            </div>
+                                )}
+                            </>
                         )}
                     </>
                 )}

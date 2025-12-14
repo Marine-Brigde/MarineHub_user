@@ -46,6 +46,8 @@ export default function ProductDetail() {
     const [suggestions, setSuggestions] = useState<any[]>([])
     const [suggestionError, setSuggestionError] = useState<string>("")
     const debounceRef = useRef<any>(null)
+    // Lưu các modifier option đã chọn theo từng biến thể
+    const [selectedModifierOptionIds, setSelectedModifierOptionIds] = useState<Record<string, string[]>>({})
 
     useEffect(() => {
         if (product?.productVariants && product.productVariants.length > 0 && !selectedVariantId) {
@@ -65,15 +67,19 @@ export default function ProductDetail() {
             return
         }
 
+        const currentSelectedOptions = selectedModifierOptionIds[selectedVariantId] || []
+
         const payload: CreateOrderRequest = {
             orderItems: [
                 {
                     productVariantId: selectedVariantId,
                     quantity,
                     productOptionName: selectedVariantName,
+                    // Gửi thêm danh sách modifier option đã chọn (nếu backend hỗ trợ)
+                    modifierOptionIds: currentSelectedOptions,
                 },
             ],
-        }
+        } as any
         setOrderPreview(payload)
         setShowOrderModal(true)
     }
@@ -226,7 +232,18 @@ export default function ProductDetail() {
             : [{ id: "placeholder", imageUrl: product?.imageUrl || "/placeholder.svg" }]
 
     const currentVariant = product?.productVariants?.find((v) => v.id === selectedVariantId)
+    const currentSelectedOptions = selectedVariantId ? selectedModifierOptionIds[selectedVariantId] || [] : []
     const currentPrice = currentVariant?.price ?? 0
+
+    const toggleModifierOption = (variantId: string, optionId: string) => {
+        setSelectedModifierOptionIds((prev) => {
+            const existing = prev[variantId] || []
+            const next = existing.includes(optionId)
+                ? existing.filter((id) => id !== optionId)
+                : [...existing, optionId]
+            return { ...prev, [variantId]: next }
+        })
+    }
 
     const priceText = (() => {
         if (!product) return ""
@@ -298,7 +315,7 @@ export default function ProductDetail() {
                                         alt={product.name}
                                         className="h-full w-full object-cover hover:scale-110 transition-transform duration-300"
                                         onError={(e) => {
-                                            ; (e.target as HTMLImageElement).src = "/placeholder.svg"
+                                            (e.target as HTMLImageElement).src = "/placeholder.svg"
                                         }}
                                     />
                                     <div className="absolute top-3 right-3 bg-black/50 backdrop-blur text-white px-2 py-1 rounded text-xs font-medium">
@@ -323,7 +340,7 @@ export default function ProductDetail() {
                                                 alt={`${product.name}-${idx}`}
                                                 className="h-full w-full object-cover"
                                                 onError={(e) => {
-                                                    ; (e.target as HTMLImageElement).src = "/placeholder.svg"
+                                                    (e.target as HTMLImageElement).src = "/placeholder.svg"
                                                 }}
                                             />
                                         </button>
@@ -404,6 +421,47 @@ export default function ProductDetail() {
                                     </div>
                                 )}
 
+                                {/* Modifier Groups & Options of selected variant (selectable) */}
+                                {currentVariant?.modifierGroups && currentVariant.modifierGroups.length > 0 && (
+                                    <div className="space-y-3">
+                                        <h3 className="font-semibold text-sm text-foreground">Tuỳ chọn kèm theo</h3>
+                                        <div className="space-y-3">
+                                            {currentVariant.modifierGroups.map((g) => (
+                                                <Card key={g.id} className="border-border/70 bg-gradient-to-br from-background to-muted/40 shadow-sm">
+                                                    <CardContent className="py-3 px-4 space-y-3">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-sm font-semibold text-foreground">{g.name}</span>
+                                                            <span className="text-xs text-muted-foreground">Chạm để chọn/bỏ chọn</span>
+                                                        </div>
+                                                        {g.modifierOptions && g.modifierOptions.length > 0 ? (
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {g.modifierOptions.map((opt) => {
+                                                                    const checked = currentSelectedOptions.includes(opt.id)
+                                                                    return (
+                                                                        <button
+                                                                            type="button"
+                                                                            key={opt.id}
+                                                                            onClick={() => selectedVariantId && toggleModifierOption(selectedVariantId, opt.id)}
+                                                                            className={`px-3 py-2 rounded-lg border text-xs font-medium transition-all ${checked
+                                                                                    ? "border-primary bg-primary/10 text-primary shadow-sm"
+                                                                                    : "border-border bg-background hover:border-primary/60 hover:bg-primary/5"
+                                                                                }`}
+                                                                        >
+                                                                            {opt.name}
+                                                                        </button>
+                                                                    )
+                                                                })}
+                                                            </div>
+                                                        ) : (
+                                                            <p className="text-xs text-muted-foreground">Chưa có tuỳ chọn</p>
+                                                        )}
+                                                    </CardContent>
+                                                </Card>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Quantity Selection */}
                                 <div className="space-y-3">
                                     <label className="text-xs font-semibold text-foreground block">Số lượng</label>
@@ -452,7 +510,6 @@ export default function ProductDetail() {
                                             </>
                                         )}
                                     </Button>
-
                                 </div>
                             </div>
                         </div>

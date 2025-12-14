@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import {
     Loader2,
     ShoppingCart,
@@ -11,8 +11,6 @@ import {
     Clock,
     CheckCircle2,
     XCircle,
-
-
     Search,
     Filter,
 } from "lucide-react"
@@ -60,6 +58,9 @@ import {
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { SidebarTrigger } from "@/components/ui/sidebar"
+import { useToast } from "@/hooks/use-toast"
+import { createPaymentApi } from "@/api/payment/paymentApi"
+import { getBoatyardDetailApi } from "@/api/boatyardApi/boatyardApi"
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; icon: typeof CheckCircle2 }> = {
     pending: { bg: "bg-yellow-100", text: "text-yellow-700", icon: Clock },
@@ -78,6 +79,7 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 export default function RepairShopOrders() {
+    const { toast } = useToast()
     const [loading, setLoading] = useState(false)
     const [orders, setOrders] = useState<OrderResponseData[]>([])
     const [error, setError] = useState<string | null>(null)
@@ -95,6 +97,11 @@ export default function RepairShopOrders() {
     const [detailError, setDetailError] = useState<string | null>(null)
     const [selectedOrder, setSelectedOrder] = useState<OrderDetailResponseData | null>(null)
     const [, setSelectedOrderId] = useState<string | null>(null)
+    const [paying, setPaying] = useState(false)
+    const [paymentAddress, setPaymentAddress] = useState<string>("")
+    const [suggestions, setSuggestions] = useState<any[]>([])
+    const [suggestionError, setSuggestionError] = useState<string>("")
+    const debounceRef = useRef<any>(null)
 
     const handleOpenDetail = async (id: string) => {
         setSelectedOrderId(id)
@@ -146,6 +153,56 @@ export default function RepairShopOrders() {
         setSelectedOrderId(null)
         setDetailError(null)
         setDetailLoading(false)
+        setPaymentAddress("")
+        setSuggestions([])
+    }
+
+    // Prefill address when opening dialog for pending orders
+    useEffect(() => {
+        const tryPrefill = async () => {
+            if (!dialogOpen || !selectedOrder) return
+            if (selectedOrder.status?.toLowerCase() !== 'pending') return
+            try {
+                const mine = await getBoatyardDetailApi()
+                if (mine?.status === 200 && mine.data) {
+                    const addr = (mine.data as any).address || (mine.data as any).Address || ""
+                    if (addr && addr.trim()) {
+                        setPaymentAddress(addr)
+                    }
+                }
+            } catch (err) {
+                console.warn("Address prefill error", err)
+            }
+        }
+        tryPrefill()
+    }, [dialogOpen, selectedOrder])
+
+    const fetchSuggestions = async (input: string) => {
+        setSuggestionError("")
+        if (!input || input.length < 3) {
+            setSuggestions([])
+            return
+        }
+        const API_KEY = import.meta.env.VITE_GOONG_API_KEY as string
+        const apiLink = `https://rsapi.goong.io/place/autocomplete?api_key=${API_KEY}&input=${encodeURIComponent(input)}`
+        try {
+            const response = await fetch(apiLink)
+            const data = await response.json()
+            if (data.predictions) setSuggestions(data.predictions)
+            else setSuggestions([])
+        } catch (err) {
+            console.error("Error fetching autocomplete:", err)
+            setSuggestionError("Không thể tải gợi ý địa chỉ")
+            setSuggestions([])
+        }
+    }
+
+    const handleAddressChange = (value: string) => {
+        setPaymentAddress(value)
+        if (debounceRef.current) clearTimeout(debounceRef.current)
+        debounceRef.current = setTimeout(() => {
+            fetchSuggestions(value)
+        }, 400)
     }
 
     const loadOrders = async (page: number) => {
@@ -629,6 +686,49 @@ export default function RepairShopOrders() {
                                         )}
                                     </CardContent>
                                 </Card>
+
+                                {/* Address input for pending payment */}
+                                {selectedOrder?.status?.toLowerCase() === 'pending' && (
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="text-base flex items-center gap-2">
+                                                <DollarSign className="h-4 w-4" />
+                                                Địa chỉ giao hàng
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-2">
+                                                <Label className="text-xs">Địa chỉ giao hàng (bắt buộc)</Label>
+                                                <div className="relative">
+                                                    <Input
+                                                        value={paymentAddress}
+                                                        onChange={(e) => handleAddressChange(e.target.value)}
+                                                        placeholder="Nhập địa chỉ giao hàng đầy đủ"
+                                                        className="w-full text-sm"
+                                                    />
+                                                    {suggestionError && <div className="text-red-600 text-sm mt-2">{suggestionError}</div>}
+                                                    {suggestions && suggestions.length > 0 && (
+                                                        <div className="absolute z-50 left-0 right-0 mt-1 bg-popover border border-border rounded shadow max-h-40 overflow-y-auto">
+                                                            {suggestions.map((s) => (
+                                                                <button
+                                                                    key={s.place_id}
+                                                                    type="button"
+                                                                    className="w-full text-left px-3 py-2 hover:bg-muted/50 text-sm"
+                                                                    onClick={() => {
+                                                                        setPaymentAddress(s.description)
+                                                                        setSuggestions([])
+                                                                    }}
+                                                                >
+                                                                    {s.description}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
                             </div>
                         ) : (
                             <div className="text-center py-6">
@@ -637,7 +737,57 @@ export default function RepairShopOrders() {
                         )}
                     </div>
 
-                    <DialogFooter>
+                    <DialogFooter className="flex flex-wrap gap-2 justify-between">
+                        <div className="flex-1 min-w-[180px]">
+                            {selectedOrder?.status?.toLowerCase() === 'pending' && (
+                                <Button
+                                    onClick={async () => {
+                                        if (!selectedOrder) return
+                                        if (!paymentAddress || !paymentAddress.trim()) {
+                                            toast({
+                                                title: 'Thông báo',
+                                                description: 'Vui lòng nhập địa chỉ giao hàng',
+                                                variant: 'destructive',
+                                            })
+                                            return
+                                        }
+                                        try {
+                                            setPaying(true)
+                                            const res = await createPaymentApi({ id: selectedOrder.id, type: 'Supplier', address: paymentAddress })
+                                            const checkoutUrl = (res as any)?.data?.checkoutUrl || (res as any)?.data?.checkout_url
+                                            if (checkoutUrl) {
+                                                window.open(checkoutUrl, '_blank')
+                                                toast({
+                                                    title: 'Tiếp tục thanh toán',
+                                                    description: 'Đang chuyển tới trang thanh toán',
+                                                })
+                                            } else {
+                                                toast({ title: 'Thông báo', description: 'Không nhận được liên kết thanh toán', variant: 'destructive' })
+                                            }
+                                        } catch (err: any) {
+                                            console.error('createPaymentApi error', err)
+                                            toast({
+                                                title: 'Lỗi',
+                                                description: err?.response?.data?.message || 'Không thể tiếp tục thanh toán',
+                                                variant: 'destructive',
+                                            })
+                                        } finally {
+                                            setPaying(false)
+                                        }
+                                    }}
+                                    disabled={paying}
+                                    className="bg-primary text-white hover:bg-primary/90 w-full"
+                                >
+                                    {paying ? (
+                                        <span className="flex items-center gap-2 text-sm">
+                                            <Loader2 className="h-4 w-4 animate-spin" /> Đang mở thanh toán...
+                                        </span>
+                                    ) : (
+                                        'Tiếp tục thanh toán'
+                                    )}
+                                </Button>
+                            )}
+                        </div>
                         <Button variant="outline" onClick={handleCloseDetail}>
                             Đóng
                         </Button>

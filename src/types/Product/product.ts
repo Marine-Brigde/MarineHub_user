@@ -48,5 +48,18 @@ export interface ProductVariant {
     id: string
     name: string
     price: number
+    modifierGroups?: ProductModifierGroup[]
+}
+
+export interface ProductModifierGroup {
+    id: string
+    name: string
+    modifierOptions?: ProductModifierOption[]
+}
+
+export interface ProductModifierOption {
+    id: string
+    name: string
+    displayOrder?: number | null
 }
 

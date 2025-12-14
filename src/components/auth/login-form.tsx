@@ -73,14 +73,33 @@ export function LoginForm({ onLoadingChange }: LoginFormProps) {
         } catch (err: any) {
             console.error('Login error:', err);
 
-            // Check for 404 status - wrong username/password
+            // Extract error message from various response formats
+            let errorMsg = "Đăng nhập thất bại. Vui lòng thử lại.";
+
             if (err?.response?.status === 404 || err?.response?.data?.status === 404) {
-                setError("Tên đăng nhập hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.");
+                errorMsg = "Tên đăng nhập hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.";
             } else {
-                // Get detailed error message from API or fallback
-                const errorMsg = err?.response?.data?.data || err?.response?.data?.message || err?.message || "Đăng nhập thất bại. Vui lòng thử lại.";
-                setError(errorMsg);
+                const responseData = err?.response?.data;
+
+                // Try to extract error message from various response formats
+                if (typeof responseData?.data === 'string') {
+                    errorMsg = responseData.data;
+                } else if (Array.isArray(responseData?.data)) {
+                    // If data is an array of error strings or objects
+                    const errors = responseData.data.map((item: any) =>
+                        typeof item === 'string' ? item : item?.errorMessage || JSON.stringify(item)
+                    );
+                    errorMsg = errors.join(' ');
+                } else if (typeof responseData?.data === 'object' && responseData?.data?.errorMessage) {
+                    errorMsg = responseData.data.errorMessage;
+                } else if (responseData?.message) {
+                    errorMsg = responseData.message;
+                } else if (err?.message) {
+                    errorMsg = err.message;
+                }
             }
+
+            setError(errorMsg);
         } finally {
             onLoadingChange(false); // Kết thúc loading
         }

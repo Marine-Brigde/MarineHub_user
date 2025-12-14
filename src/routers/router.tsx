@@ -24,6 +24,7 @@ import ProductDetailPage from '@/page/products/productDetail';
 import PublicSuppliersPage from '@/page/suppliers/suppliers';
 import SupplierDashboardPage from '@/page/supplier/dashboard/dasboard';
 import SupplierReviewsPage from '@/page/supplier/reviews/reviews';
+import SupplierModifierGroupsPage from '@/page/supplier/modifier-groups/modifier-groups';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import PaymentSuccessPage from '@/page/payment/success';
 import RepairShopBookingsPage from '@/page/repair-shop/bookings/bookings';
@@ -148,6 +149,16 @@ const router = createBrowserRouter([
             <ProtectedRoute allowedRole="Supplier">
                 <SupplierLayout>
                     <SupplierReviewsPage />
+                </SupplierLayout>
+            </ProtectedRoute>
+        )
+    },
+    {
+        path: '/supplier/modifier-groups',
+        element: (
+            <ProtectedRoute allowedRole="Supplier">
+                <SupplierLayout>
+                    <SupplierModifierGroupsPage />
                 </SupplierLayout>
             </ProtectedRoute>
         )

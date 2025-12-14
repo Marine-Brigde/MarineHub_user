@@ -49,13 +49,24 @@ export const createSupplierProductApi = async (data: CreateProductRequest) => {
     }
     formData.append('IsHasVariant', data.isHasVariant.toString())
 
-    // Append ProductVariants as array of objects for .NET model binding
-    // Format: ProductVariants[0].name, ProductVariants[0].price, ProductVariants[1].name, etc.
-    // Note: .NET uses lowercase property names for JSON binding
+    // Append ProductVariants as array of objects
+    // Supports modifierOptionIds per variant when present
     if (data.isHasVariant && data.productVariants && data.productVariants.length > 0) {
         data.productVariants.forEach((variant, index) => {
             formData.append(`ProductVariants[${index}].name`, variant.name)
             formData.append(`ProductVariants[${index}].price`, variant.price.toString())
+            if (variant.modifierOptionIds && variant.modifierOptionIds.length > 0) {
+                variant.modifierOptionIds.forEach((id, j) => {
+                    formData.append(`ProductVariants[${index}].ModifierOptionIds[${j}]`, id)
+                })
+            }
+        })
+    }
+
+    // Append ModifierOptionIds at top-level when product has no variants
+    if (!data.isHasVariant && data.modifierOptionIds && data.modifierOptionIds.length > 0) {
+        data.modifierOptionIds.forEach((id, idx) => {
+            formData.append(`ModifierOptionIds[${idx}]`, id)
         })
     }
 
@@ -105,13 +116,23 @@ export const updateSupplierProductApi = async (id: string, data: UpdateProductRe
     }
     if (data.isHasVariant !== undefined) formData.append('IsHasVariant', data.isHasVariant.toString())
 
-    // Append ProductVariants if provided (for .NET model binding)
-    // Format: ProductVariants[0].name, ProductVariants[0].price, ProductVariants[1].name, etc.
-    // Note: .NET uses lowercase property names for JSON binding
+    // Append ProductVariants if provided
     if (data.isHasVariant && data.productVariants && data.productVariants.length > 0) {
         data.productVariants.forEach((variant, index) => {
             formData.append(`ProductVariants[${index}].name`, variant.name)
             formData.append(`ProductVariants[${index}].price`, variant.price.toString())
+            if (variant.modifierOptionIds && variant.modifierOptionIds.length > 0) {
+                variant.modifierOptionIds.forEach((id, j) => {
+                    formData.append(`ProductVariants[${index}].ModifierOptionIds[${j}]`, id)
+                })
+            }
+        })
+    }
+
+    // Append top-level ModifierOptionIds when updating a non-variant product
+    if (data.isHasVariant === false && data.modifierOptionIds && data.modifierOptionIds.length > 0) {
+        data.modifierOptionIds.forEach((id, idx) => {
+            formData.append(`ModifierOptionIds[${idx}]`, id)
         })
     }
 

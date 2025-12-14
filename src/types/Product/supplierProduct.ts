@@ -3,6 +3,7 @@
 export interface ProductVariant {
     name: string
     price: number
+    modifierOptionIds?: string[]
 }
 
 export interface Product {
@@ -41,6 +42,7 @@ export interface CreateProductRequest {
     isHasVariant: boolean
     productVariants: ProductVariant[]
     productImages: File[]
+    modifierOptionIds?: string[]
 }
 
 export interface UpdateProductRequest {
@@ -51,6 +53,7 @@ export interface UpdateProductRequest {
     isHasVariant?: boolean
     productVariants?: ProductVariant[]
     productImages?: File[]
+    modifierOptionIds?: string[]
 }
 
 export interface GetProductsParams {

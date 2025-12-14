@@ -36,6 +36,8 @@ import { getProductByIdApi } from '@/api/Product/productApi'
 import { getCategoriesApi } from "@/api/Category/categoryApi"
 import type { Product, CreateProductRequest, UpdateProductRequest, ProductVariant } from "@/types/Product/supplierProduct"
 import type { Category } from "@/types/Category/category"
+import { getModifierGroupsApi, getModifierGroupByIdApi } from "@/api/ModifierGroup/modifierGroupApi"
+import type { ModifierGroup, ModifierOption } from "@/types/Modifier/modifier"
 
 const shortText = (s?: string, n = 80) => (s && s.length > n ? s.slice(0, n) + "…" : s || "")
 
@@ -90,9 +92,17 @@ export default function ProductsManagement() {
     const [categoryId, setCategoryId] = useState("")
     const [price, setPrice] = useState("")
     const [isHasVariant, setIsHasVariant] = useState(false)
-    const [productVariants, setProductVariants] = useState<ProductVariant[]>([])
+    // Extend local ProductVariant shape to include modifierOptionIds for UI
+    const [productVariants, setProductVariants] = useState<(ProductVariant & { modifierOptionIds?: string[] })[]>([])
+    // For non-variant products, collect modifier option ids at top-level
+    const [modifierOptionIds, setModifierOptionIds] = useState<string[]>([])
     const [productImages, setProductImages] = useState<File[]>([])
     const [imagePreviews, setImagePreviews] = useState<string[]>([])
+
+    // Modifier groups + options for name-based selection
+    const [modifierGroups, setModifierGroups] = useState<ModifierGroup[]>([])
+    const [groupOptionsMap, setGroupOptionsMap] = useState<Record<string, ModifierOption[]>>({})
+    const [modifierLoading, setModifierLoading] = useState(false)
 
     const fileInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -144,6 +154,35 @@ export default function ProductsManagement() {
 
     useEffect(() => {
         fetchCategories()
+        // Fetch modifier groups and their options
+        const loadModifierData = async () => {
+            try {
+                setModifierLoading(true)
+                const res = await getModifierGroupsApi({ page: 1, size: 100, sortBy: 'name', isAsc: true })
+                const data = (res as any)?.data ?? res
+                const groups: ModifierGroup[] = data?.items ?? []
+                setModifierGroups(groups)
+                const optionsMap: Record<string, ModifierOption[]> = {}
+                // Load options per group
+                for (const g of groups) {
+                    try {
+                        const detail = await getModifierGroupByIdApi(g.id!)
+                        const groupData = (detail as any)?.data ?? detail?.data
+                        // API returns `modifierOptions` array on detail
+                        optionsMap[g.id!] = groupData?.modifierOptions ?? []
+                    } catch {
+                        optionsMap[g.id!] = []
+                    }
+                }
+                setGroupOptionsMap(optionsMap)
+            } catch {
+                setModifierGroups([])
+                setGroupOptionsMap({})
+            } finally {
+                setModifierLoading(false)
+            }
+        }
+        loadModifierData()
     }, [])
 
     useEffect(() => {
@@ -253,7 +292,7 @@ export default function ProductsManagement() {
     }
 
     const addVariant = () => {
-        setProductVariants((prev) => [...prev, { name: "", price: 0 }])
+        setProductVariants((prev) => [...prev, { name: "", price: 0, modifierOptionIds: [] }])
     }
 
     const removeVariant = (index: number) => {
@@ -264,6 +303,9 @@ export default function ProductsManagement() {
         setProductVariants((prev) =>
             prev.map((v, i) => (i === index ? { ...v, [field]: value } : v))
         )
+    }
+    const updateVariantModifierIds = (index: number, ids: string[]) => {
+        setProductVariants((prev) => prev.map((v, i) => (i === index ? { ...v, modifierOptionIds: ids } : v)))
     }
 
     const openPreview = (url?: string | null) => {
@@ -345,6 +387,7 @@ export default function ProductsManagement() {
                     price: isHasVariant ? undefined : (price ? priceNum : undefined),
                     isHasVariant,
                     productVariants: isHasVariant ? productVariants : undefined,
+                    modifierOptionIds: !isHasVariant ? modifierOptionIds : undefined,
                     productImages: productImages.length > 0 ? productImages : undefined,
                 }
                 await updateSupplierProductApi(editProduct.id, payload)
@@ -356,6 +399,7 @@ export default function ProductsManagement() {
                     price: isHasVariant ? null : priceNum,
                     isHasVariant,
                     productVariants: isHasVariant ? productVariants : [],
+                    modifierOptionIds: !isHasVariant ? modifierOptionIds : undefined,
                     productImages,
                 }
                 await createSupplierProductApi(payload)
@@ -625,18 +669,63 @@ export default function ProductsManagement() {
                             </div>
 
                             {!isHasVariant && (
-                                <div className="grid gap-2">
-                                    <Label htmlFor="product-price">Giá sản phẩm (VND) *</Label>
-                                    <Input
-                                        id="product-price"
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        value={price}
-                                        onChange={(e) => setPrice(e.target.value)}
-                                        placeholder="Nhập giá sản phẩm..."
-                                        required={!editProduct && !isHasVariant}
-                                    />
+                                <div className="grid gap-3">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="product-price">Giá sản phẩm (VND) *</Label>
+                                        <Input
+                                            id="product-price"
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={price}
+                                            onChange={(e) => setPrice(e.target.value)}
+                                            placeholder="Nhập giá sản phẩm..."
+                                            required={!editProduct && !isHasVariant}
+                                        />
+                                    </div>
+                                    {/* Name-based selection for Modifier Options when no variants */}
+                                    <div className="grid gap-2">
+                                        <Label>Chọn tuỳ chọn (theo tên)</Label>
+                                        {modifierLoading ? (
+                                            <div className="p-2 text-sm text-muted-foreground flex items-center gap-2">
+                                                <Loader2 className="h-4 w-4 animate-spin" /> Đang tải tuỳ chọn...
+                                            </div>
+                                        ) : modifierGroups.length === 0 ? (
+                                            <p className="text-sm text-muted-foreground">Không có nhóm tuỳ chọn</p>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {modifierGroups.map((g) => (
+                                                    <div key={g.id} className="border rounded p-2">
+                                                        <p className="text-sm font-medium">{g.name}</p>
+                                                        <div className="flex flex-wrap gap-2 mt-2">
+                                                            {(groupOptionsMap[g.id!] ?? []).map((opt) => {
+                                                                const checked = modifierOptionIds.includes(opt.id!)
+                                                                return (
+                                                                    <label key={opt.id} className="flex items-center gap-2 border rounded px-2 py-1 text-sm">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={checked}
+                                                                            onChange={(e) => {
+                                                                                const id = opt.id!
+                                                                                setModifierOptionIds((prev) => {
+                                                                                    if (e.target.checked) return [...prev, id]
+                                                                                    return prev.filter((x) => x !== id)
+                                                                                })
+                                                                            }}
+                                                                        />
+                                                                        <span>{opt.name}</span>
+                                                                    </label>
+                                                                )
+                                                            })}
+                                                            {(groupOptionsMap[g.id!] ?? []).length === 0 && (
+                                                                <p className="text-xs text-muted-foreground">Nhóm chưa có tuỳ chọn</p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 
@@ -682,39 +771,83 @@ export default function ProductsManagement() {
                                             </Button>
                                         </div>
                                         {productVariants.map((variant, index) => (
-                                            <div key={index} className="flex gap-2 items-end p-3 border rounded-md bg-muted/20">
-                                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
-                                                    {index + 1}
+                                            <div key={index} className="flex flex-col gap-2 p-3 border rounded-md bg-muted/20">
+                                                <div className="flex gap-2 items-end">
+                                                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
+                                                        {index + 1}
+                                                    </div>
+                                                    <div className="flex-1 grid gap-2">
+                                                        <Label>Tên biến thể {index + 1}</Label>
+                                                        <Input
+                                                            value={variant.name}
+                                                            onChange={(e) => updateVariant(index, 'name', e.target.value)}
+                                                            placeholder="Nhập tên biến thể..."
+                                                        />
+                                                    </div>
+                                                    <div className="flex-1 grid gap-2">
+                                                        <Label>Giá (VND) {index + 1}</Label>
+                                                        <Input
+                                                            type="number"
+                                                            step="0.01"
+                                                            min="0"
+                                                            value={variant.price}
+                                                            onChange={(e) => updateVariant(index, 'price', parseFloat(e.target.value) || 0)}
+                                                            placeholder="Nhập giá biến thể..."
+                                                        />
+                                                    </div>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => removeVariant(index)}
+                                                        className="flex-shrink-0"
+                                                        title="Xóa biến thể"
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
                                                 </div>
-                                                <div className="flex-1 grid gap-2">
-                                                    <Label>Tên biến thể {index + 1}</Label>
-                                                    <Input
-                                                        value={variant.name}
-                                                        onChange={(e) => updateVariant(index, 'name', e.target.value)}
-                                                        placeholder="Nhập tên biến thể..."
-                                                    />
+                                                {/* Name-based selection for modifier options per variant */}
+                                                <div className="grid gap-2">
+                                                    <Label>Tuỳ chọn cho biến thể {index + 1}</Label>
+                                                    {modifierLoading ? (
+                                                        <div className="p-2 text-sm text-muted-foreground flex items-center gap-2">
+                                                            <Loader2 className="h-4 w-4 animate-spin" /> Đang tải tuỳ chọn...
+                                                        </div>
+                                                    ) : (
+                                                        <div className="space-y-3">
+                                                            {modifierGroups.map((g) => (
+                                                                <div key={g.id} className="border rounded p-2">
+                                                                    <p className="text-sm font-medium">{g.name}</p>
+                                                                    <div className="flex flex-wrap gap-2 mt-2">
+                                                                        {(groupOptionsMap[g.id!] ?? []).map((opt) => {
+                                                                            const ids = variant.modifierOptionIds ?? []
+                                                                            const checked = ids.includes(opt.id!)
+                                                                            return (
+                                                                                <label key={opt.id} className="flex items-center gap-2 border rounded px-2 py-1 text-sm">
+                                                                                    <input
+                                                                                        type="checkbox"
+                                                                                        checked={checked}
+                                                                                        onChange={(e) => {
+                                                                                            const id = opt.id!
+                                                                                            const next = e.target.checked
+                                                                                                ? [...ids, id]
+                                                                                                : ids.filter((x) => x !== id)
+                                                                                            updateVariantModifierIds(index, next)
+                                                                                        }}
+                                                                                    />
+                                                                                    <span>{opt.name}</span>
+                                                                                </label>
+                                                                            )
+                                                                        })}
+                                                                        {(groupOptionsMap[g.id!] ?? []).length === 0 && (
+                                                                            <p className="text-xs text-muted-foreground">Nhóm chưa có tuỳ chọn</p>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <div className="flex-1 grid gap-2">
-                                                    <Label>Giá (VND) {index + 1}</Label>
-                                                    <Input
-                                                        type="number"
-                                                        step="0.01"
-                                                        min="0"
-                                                        value={variant.price}
-                                                        onChange={(e) => updateVariant(index, 'price', parseFloat(e.target.value) || 0)}
-                                                        placeholder="Nhập giá biến thể..."
-                                                    />
-                                                </div>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => removeVariant(index)}
-                                                    className="flex-shrink-0"
-                                                    title="Xóa biến thể"
-                                                >
-                                                    <X className="h-4 w-4" />
-                                                </Button>
                                             </div>
                                         ))}
                                         {productVariants.length === 0 && (

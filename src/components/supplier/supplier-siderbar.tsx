@@ -1,6 +1,6 @@
 "use client"
 
-import { Anchor, BarChart3, Package, ShoppingCart, MessageSquare, LogOut, User } from "lucide-react"
+import { Anchor, BarChart3, Package, ShoppingCart, MessageSquare, LogOut, User, Settings2 } from "lucide-react"
 import { useLocation } from "react-router-dom"
 
 import {
@@ -31,6 +31,11 @@ const menuItems = [
         title: "Quản lý danh mục",
         url: "/supplier/categories",
         icon: Package,
+    },
+    {
+        title: "Nhóm tùy chỉnh",
+        url: "/supplier/modifier-groups",
+        icon: Settings2,
     },
     {
         title: "Đơn hàng",
@@ -69,20 +74,20 @@ export function SupplierSidebar() {
                     {menuItems.map((item) => {
                         const isActive = location.pathname.startsWith(item.url);
                         return (
-                        <SidebarMenuItem key={item.title} className="mb-2">
-                            <SidebarMenuButton
-                                asChild
+                            <SidebarMenuItem key={item.title} className="mb-2">
+                                <SidebarMenuButton
+                                    asChild
                                     isActive={isActive}
-                                tooltip={item.title}
+                                    tooltip={item.title}
                                     className={`flex items-center gap-4 px-5 py-3 rounded-lg text-base transition-all
                                         ${isActive ? "bg-primary/10 text-primary font-semibold" : "hover:bg-primary/10"}`}
-                            >
-                                <Link to={item.url}>
-                                    <item.icon className="h-6 w-6" />
-                                    <span>{item.title}</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
+                                >
+                                    <Link to={item.url}>
+                                        <item.icon className="h-6 w-6" />
+                                        <span>{item.title}</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
                         )
                     })}
                 </SidebarMenu>

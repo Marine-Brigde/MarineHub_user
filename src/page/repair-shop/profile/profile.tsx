@@ -4,12 +4,11 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
-import { User, Phone, FileText, Save, Loader2, CheckCircle2, Camera } from "lucide-react"
+import { User, Phone, Save, Loader2, CheckCircle2, Camera } from "lucide-react"
 import { getProfileApi, updateProfileApi } from "@/api/authApi"
 import type { ProfileData } from "@/models/Auth"
 
@@ -20,13 +19,12 @@ export default function BoatyardProfilePage() {
     const [success, setSuccess] = useState("")
     const [isEditing, setIsEditing] = useState(false)
 
-    const [profileData, setProfileData] = useState<ProfileData & { personalIntroduction?: string; email?: string; username?: string; name?: string }>({
+    const [profileData, setProfileData] = useState<ProfileData & { email?: string; username?: string; name?: string }>({
         id: "",
         fullName: "",
         address: "",
         phoneNumber: "",
         avatarUrl: "",
-        personalIntroduction: "",
         email: "",
         username: "",
         name: "",
@@ -35,7 +33,6 @@ export default function BoatyardProfilePage() {
     const [formData, setFormData] = useState({
         fullName: "",
         phoneNumber: "",
-        personalIntroduction: "",
         avatar: null as File | null,
     })
 
@@ -57,7 +54,6 @@ export default function BoatyardProfilePage() {
                 
                 setProfileData({
                     ...response.data,
-                    personalIntroduction: (response.data as any).personalIntroduction || "",
                     email,
                     username,
                     name: "", // Không có trong API response
@@ -65,7 +61,6 @@ export default function BoatyardProfilePage() {
                 setFormData({
                     fullName: response.data.fullName || "",
                     phoneNumber: response.data.phoneNumber || "",
-                    personalIntroduction: (response.data as any).personalIntroduction || "",
                     avatar: null,
                 })
             } else {
@@ -105,11 +100,6 @@ export default function BoatyardProfilePage() {
                 phoneNumber: formData.phoneNumber,
             }
 
-            // Add personalIntroduction if supported by API
-            if (formData.personalIntroduction !== undefined) {
-                updateData.personalIntroduction = formData.personalIntroduction
-            }
-
             // Add avatar if selected
             if (formData.avatar) {
                 updateData.avatar = formData.avatar
@@ -140,7 +130,6 @@ export default function BoatyardProfilePage() {
         setFormData({
             fullName: profileData.fullName || "",
             phoneNumber: profileData.phoneNumber || "",
-            personalIntroduction: profileData.personalIntroduction || "",
             avatar: null,
         })
         setIsEditing(false)
@@ -338,42 +327,6 @@ export default function BoatyardProfilePage() {
                                 ) : (
                                     <p className="text-sm py-2 px-3 bg-muted rounded-md">
                                         {profileData.phoneNumber || "Chưa cập nhật"}
-                                    </p>
-                                )}
-                            </div>
-
-                            {/* Personal Introduction */}
-                            <div className="space-y-2">
-                                <Label htmlFor="personalIntroduction" className="flex items-center gap-2">
-                                    <FileText className="h-4 w-4 text-muted-foreground" />
-                                    Giới thiệu cá nhân
-                                </Label>
-                                {isEditing ? (
-                                    <Textarea
-                                        id="personalIntroduction"
-                                        placeholder="Viết giới thiệu về bản thân và xưởng sửa chữa của bạn..."
-                                        value={formData.personalIntroduction}
-                                        onChange={(e) =>
-                                            setFormData((prev) => ({
-                                                ...prev,
-                                                personalIntroduction: e.target.value,
-                                            }))
-                                        }
-                                        rows={6}
-                                        className="resize-none"
-                                    />
-                                ) : (
-                                    <div className="text-sm py-2 px-3 bg-muted rounded-md min-h-[120px]">
-                                        {profileData.personalIntroduction || (
-                                            <span className="text-muted-foreground italic">
-                                                Chưa có giới thiệu
-                                            </span>
-                                        )}
-                                    </div>
-                                )}
-                                {isEditing && (
-                                    <p className="text-xs text-muted-foreground">
-                                        Viết mô tả ngắn gọn về bạn và dịch vụ xưởng sửa chữa
                                     </p>
                                 )}
                             </div>

@@ -57,7 +57,6 @@ export interface UpdateProfileRequest {
     phoneNumber?: string
     address?: string
     avatar?: File | null
-    personalIntroduction?: string
 }
 
 // 📦 Profile ApiResponse (đồng bộ với các API khác)

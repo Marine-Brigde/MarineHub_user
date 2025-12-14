@@ -19,13 +19,12 @@ export default function SupplierProfilePage() {
     const [success, setSuccess] = useState("")
     const [isEditing, setIsEditing] = useState(false)
 
-    const [profileData, setProfileData] = useState<ProfileData & { personalIntroduction?: string; email?: string; username?: string; name?: string }>({
+    const [profileData, setProfileData] = useState<ProfileData & { email?: string; username?: string; name?: string }>({
         id: "",
         fullName: "",
         address: "",
         phoneNumber: "",
         avatarUrl: "",
-        personalIntroduction: "",
         email: "",
         username: "",
         name: "",
@@ -34,7 +33,6 @@ export default function SupplierProfilePage() {
     const [formData, setFormData] = useState({
         fullName: "",
         phoneNumber: "",
-        personalIntroduction: "",
         avatar: null as File | null,
     })
 
@@ -56,7 +54,6 @@ export default function SupplierProfilePage() {
                 
                 setProfileData({
                     ...response.data,
-                    personalIntroduction: (response.data as any).personalIntroduction || "",
                     email,
                     username,
                     name: "", // Không có trong API response
@@ -64,7 +61,6 @@ export default function SupplierProfilePage() {
                 setFormData({
                     fullName: response.data.fullName || "",
                     phoneNumber: response.data.phoneNumber || "",
-                    personalIntroduction: (response.data as any).personalIntroduction || "",
                     avatar: null,
                 })
             } else {
@@ -104,11 +100,6 @@ export default function SupplierProfilePage() {
                 phoneNumber: formData.phoneNumber,
             }
 
-            // Add personalIntroduction if supported by API
-            if (formData.personalIntroduction !== undefined) {
-                updateData.personalIntroduction = formData.personalIntroduction
-            }
-
             // Add avatar if selected
             if (formData.avatar) {
                 updateData.avatar = formData.avatar
@@ -139,7 +130,6 @@ export default function SupplierProfilePage() {
         setFormData({
             fullName: profileData.fullName || "",
             phoneNumber: profileData.phoneNumber || "",
-            personalIntroduction: profileData.personalIntroduction || "",
             avatar: null,
         })
         setIsEditing(false)

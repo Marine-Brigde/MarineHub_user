@@ -52,7 +52,6 @@ export const updateProfileApi = async (
     if (data.fullName) formData.append("FullName", data.fullName)
     if (data.phoneNumber) formData.append("PhoneNumber", data.phoneNumber)
     if (data.address) formData.append("Address", data.address)
-    if (data.personalIntroduction !== undefined) formData.append("PersonalIntroduction", data.personalIntroduction)
     if (data.avatar) formData.append("Avatar", data.avatar)
 
     const response = await axiosClient.patch<ProfileApiResponse<string>>("/v1/auth/profile", formData, {

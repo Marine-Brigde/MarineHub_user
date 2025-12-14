@@ -43,7 +43,7 @@ export const getSupplierDetailApi = async (): Promise<ApiResponse<SupplierItem>>
 
 // ✏️ PATCH - Cập nhật Supplier
 export const updateSupplierApi = async (
-    data: Partial<Omit<SupplierRequest, "email" | "username" | "otp" | "password">> & { personalIntroduction?: string; phoneNumber?: string }
+    data: Partial<Omit<SupplierRequest, "email" | "username" | "otp" | "password">> & { phoneNumber?: string }
 ): Promise<ApiResponse<string>> => {
     const formData = new FormData();
 
@@ -53,7 +53,6 @@ export const updateSupplierApi = async (
     if (data.fullName) formData.append("FullName", data.fullName);
     if (data.phoneNumber) formData.append("PhoneNumber", data.phoneNumber);
     if (data.address) formData.append("Address", data.address);
-    if (data.personalIntroduction !== undefined) formData.append("PersonalIntroduction", data.personalIntroduction);
     if (data.avatar) formData.append("Avatar", data.avatar);
     if ((data as any).bankName) formData.append("BankName", (data as any).bankName);
     if ((data as any).bankNo) formData.append("BankNo", (data as any).bankNo);

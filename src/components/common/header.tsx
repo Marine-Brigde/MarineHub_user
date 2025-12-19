@@ -123,9 +123,13 @@ export default function Header() {
         setIsAuthenticated(false)
         setUserRole(null)
         setUserInfo(null)
+
+        // Thông báo cho các component (ví dụ ChatWidget) rằng role đã thay đổi
+        if (typeof window !== "undefined") {
+            window.dispatchEvent(new Event("roleChanged"))
+        }
+
         navigate("/")
-        // Force page reload to update all components
-        window.location.reload()
     }
 
     const getDashboardPath = () => {

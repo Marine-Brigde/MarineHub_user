@@ -1,6 +1,7 @@
 import { RouterProvider } from 'react-router-dom';
 import router from './routers/router';
 import { Toaster } from '@/components/ui/toaster';
+import ChatWidget from '@/components/chat/ChatWidget';
 
 
 const App = () => {
@@ -9,6 +10,7 @@ const App = () => {
     <>
       <RouterProvider router={router} />
       <Toaster />
+      <ChatWidget />
     </>
   );
 };

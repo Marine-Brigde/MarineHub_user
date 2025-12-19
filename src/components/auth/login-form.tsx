@@ -54,6 +54,11 @@ export function LoginForm({ onLoadingChange }: LoginFormProps) {
             localStorage.setItem("username", loginData.data.username);
             localStorage.setItem("email", loginData.data.email);
 
+            // Thông báo cho các component (ví dụ ChatWidget) rằng role đã thay đổi
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new Event("roleChanged"));
+            }
+
             toast({
                 title: "Đăng nhập thành công",
                 description: `Chào mừng, ${loginData.data.username}!`,

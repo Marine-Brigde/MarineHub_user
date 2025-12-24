@@ -188,6 +188,7 @@ export function SupplierDashboard() {
 
             {/* Charts */}
             <div className="grid gap-4 md:grid-cols-2">
+                {/* Left Column - Doanh thu */}
                 <Card>
                     <CardHeader>
                         <CardTitle>Doanh thu</CardTitle>
@@ -332,99 +333,104 @@ export function SupplierDashboard() {
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Phân loại đơn hàng</CardTitle>
-                        <CardDescription>Tỷ lệ trạng thái đơn hàng</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ChartContainer config={chartConfig} className="h-[200px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={orderStatusData}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={40}
-                                        outerRadius={80}
-                                        paddingAngle={5}
-                                        dataKey="value"
-                                    >
-                                        {orderStatusData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.color} />
-                                        ))}
-                                    </Pie>
-                                    <ChartTooltip content={<ChartTooltipContent />} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                        <div className="grid grid-cols-2 gap-2 mt-4">
-                            {orderStatusData.map((item, index) => (
-                                <div key={index} className="flex items-center gap-2 text-xs">
-                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                                    <span className="truncate">{item.name}</span>
-                                    {(item as any).count !== undefined && <span className="font-medium">{(item as any).count}</span>}
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Giao dịch</CardTitle>
-                        <CardDescription>Danh sách giao dịch gần đây</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {transactionsLoading ? (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                <span>Đang tải giao dịch...</span>
-                            </div>
-                        ) : transactionsError ? (
-                            <div className="text-sm text-destructive">{transactionsError}</div>
-                        ) : transactions.length === 0 ? (
-                            <div className="text-sm text-muted-foreground">Chưa có giao dịch</div>
-                        ) : (
-                            <div className="space-y-3">
-                                {transactions.map((tx) => (
-                                    <div key={tx.id} className="rounded-lg border border-border/50 p-3 flex items-center justify-between gap-3">
-                                        <div className="space-y-1">
-                                            <p className="text-sm font-medium text-foreground line-clamp-1">{tx.transactionReference}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {new Date(tx.createdDate).toLocaleString("vi-VN", {
-                                                    day: "2-digit",
-                                                    month: "2-digit",
-                                                    year: "numeric",
-                                                    hour: "2-digit",
-                                                    minute: "2-digit",
-                                                })}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">Loại: {tx.type}</p>
-                                        </div>
-                                        <div className="text-right space-y-1">
-                                            <p className="text-sm font-semibold text-primary">
-                                                {Number(tx.amount || 0).toLocaleString("vi-VN")} đ
-                                            </p>
-                                            <Badge
-                                                variant="outline"
-                                                className={
-                                                    tx.status === "Approved"
-                                                        ? "border-emerald-500/50 text-emerald-700 bg-emerald-500/10"
-                                                        : tx.status === "Pending"
-                                                            ? "border-amber-500/50 text-amber-700 bg-amber-500/10"
-                                                            : "border-red-500/50 text-red-700 bg-red-500/10"
-                                                }
-                                            >
-                                                {tx.status === "Approved" ? "Đã duyệt" : tx.status === "Pending" ? "Chờ duyệt" : tx.status}
-                                            </Badge>
-                                        </div>
+                {/* Right Column - Phân loại đơn hàng và Giao dịch */}
+                <div className="flex flex-col gap-4">
+                    {/* Phân loại đơn hàng */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Phân loại đơn hàng</CardTitle>
+                            <CardDescription>Tỷ lệ trạng thái đơn hàng</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ChartContainer config={chartConfig} className="h-[180px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={orderStatusData}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={40}
+                                            outerRadius={70}
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                        >
+                                            {orderStatusData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                            ))}
+                                        </Pie>
+                                        <ChartTooltip content={<ChartTooltipContent />} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </ChartContainer>
+                            <div className="grid grid-cols-2 gap-2 mt-4">
+                                {orderStatusData.map((item, index) => (
+                                    <div key={index} className="flex items-center gap-2 text-xs">
+                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                                        <span className="truncate">{item.name}</span>
+                                        {(item as any).count !== undefined && <span className="font-medium">{(item as any).count}</span>}
                                     </div>
                                 ))}
                             </div>
-                        )}
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+
+                    {/* Giao dịch */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Giao dịch</CardTitle>
+                            <CardDescription>Danh sách giao dịch gần đây</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {transactionsLoading ? (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span>Đang tải giao dịch...</span>
+                                </div>
+                            ) : transactionsError ? (
+                                <div className="text-sm text-destructive">{transactionsError}</div>
+                            ) : transactions.length === 0 ? (
+                                <div className="text-sm text-muted-foreground">Chưa có giao dịch</div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {transactions.map((tx) => (
+                                        <div key={tx.id} className="rounded-lg border border-border/50 p-3 flex items-center justify-between gap-3">
+                                            <div className="space-y-1 flex-1 min-w-0">
+                                                <p className="text-sm font-medium text-foreground line-clamp-1">{tx.transactionReference}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {new Date(tx.createdDate).toLocaleString("vi-VN", {
+                                                        day: "2-digit",
+                                                        month: "2-digit",
+                                                        year: "numeric",
+                                                        hour: "2-digit",
+                                                        minute: "2-digit",
+                                                    })}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">Loại: {tx.type}</p>
+                                            </div>
+                                            <div className="text-right space-y-1 shrink-0">
+                                                <p className="text-sm font-semibold text-primary">
+                                                    {Number(tx.amount || 0).toLocaleString("vi-VN")} đ
+                                                </p>
+                                                <Badge
+                                                    variant="outline"
+                                                    className={
+                                                        tx.status === "Approved"
+                                                            ? "border-emerald-500/50 text-emerald-700 bg-emerald-500/10"
+                                                            : tx.status === "Pending"
+                                                                ? "border-amber-500/50 text-amber-700 bg-amber-500/10"
+                                                                : "border-red-500/50 text-red-700 bg-red-500/10"
+                                                    }
+                                                >
+                                                    {tx.status === "Approved" ? "Đã duyệt" : tx.status === "Pending" ? "Chờ duyệt" : tx.status}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
 
         </div>

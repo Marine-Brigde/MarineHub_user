@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Loader2, TrendingUp, TrendingDown, ChevronLeft, ChevronRight } from "lucide-react"
 import { getTransactionsApi, type Transaction } from "@/api/Transaction/transactionApi"
 
+const getShortId = (id: string) => {
+    return id.length > 8 ? id.slice(0, 8) + '...' : id
+}
+
 export function TransactionsList() {
     const [transactions, setTransactions] = useState<Transaction[]>([])
     const [loading, setLoading] = useState(false)
@@ -93,7 +97,7 @@ export function TransactionsList() {
                                             <div className="flex-1 space-y-2">
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     <p className="text-sm font-semibold text-foreground">
-                                                        {tx.transactionReference}
+                                                        {getShortId(tx.transactionReference)}
                                                     </p>
                                                     <Badge
                                                         variant="outline"

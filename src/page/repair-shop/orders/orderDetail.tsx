@@ -8,6 +8,10 @@ import { Button } from '@/components/ui/button'
 import { getOrderByIdApi } from '@/api/Order/orderApi'
 import type { OrderDetailResponseData } from '@/types/Order/order'
 
+const getShortId = (id: string) => {
+    return id.length > 8 ? id.slice(0, 8) + '...' : id
+}
+
 export default function RepairShopOrderDetailPage() {
     const { id } = useParams()
     const navigate = useNavigate()
@@ -48,7 +52,7 @@ export default function RepairShopOrderDetailPage() {
                                 <div className="space-y-4">
                                     <div className="flex justify-between">
                                         <div className="font-medium">Mã đơn hàng</div>
-                                        <div className="truncate">{order.id}</div>
+                                        <div className="truncate">{getShortId(order.id)}</div>
                                     </div>
                                     <div className="flex justify-between">
                                         <div className="font-medium">Mã đơn hàng (code)</div>

@@ -28,6 +28,10 @@ import { useToast } from "@/hooks/use-toast"
 
 const shortText = (s?: string, n = 80) => (s && s.length > n ? s.slice(0, n) + "…" : s || "")
 
+const getShortId = (id: string) => {
+    return id.length > 8 ? id.slice(0, 8) + '...' : id
+}
+
 const extractError = (err: unknown) => {
     if (!err) return "Lỗi kết nối"
     if (typeof err === "string") return err
@@ -321,7 +325,7 @@ export default function CategoryManagement() {
                                         <TableCell>
                                             <div className="space-y-1">
                                                 <p className="font-medium">{c.name}</p>
-                                                <p className="text-xs text-muted-foreground font-mono">ID: {c.id}</p>
+                                                <p className="text-xs text-muted-foreground font-mono">ID: {getShortId(c.id)}</p>
                                             </div>
                                         </TableCell>
                                         <TableCell>

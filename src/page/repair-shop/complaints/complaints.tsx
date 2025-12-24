@@ -146,6 +146,10 @@ interface Complaint {
   category: string
 }
 
+const getShortId = (id: string) => {
+  return id.length > 8 ? id.slice(0, 8) + '...' : id
+}
+
 export default function BoatyardComplaintsPage() {
   const [selectedTab, setSelectedTab] = useState<ComplaintStatus | "all">("all")
   const [searchTerm, setSearchTerm] = useState("")
@@ -347,7 +351,7 @@ export default function BoatyardComplaintsPage() {
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <FileText className="h-4 w-4" />
-                            {complaint.id}
+                            {getShortId(complaint.id)}
                           </span>
                           <span className="flex items-center gap-1">
                             <Ship className="h-4 w-4" />
@@ -423,7 +427,7 @@ export default function BoatyardComplaintsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-xs text-muted-foreground">Mã khiếu nại</Label>
-                  <p className="font-medium">{selectedComplaint.id}</p>
+                  <p className="font-medium">{getShortId(selectedComplaint.id)}</p>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Trạng thái</Label>

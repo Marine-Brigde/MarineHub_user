@@ -40,6 +40,10 @@ const fmtDate = (d: string) => {
     }
 }
 
+const getShortId = (id: string) => {
+    return id.length > 8 ? id.slice(0, 8) + '...' : id
+}
+
 export function TransactionsDashboard() {
     const [transactions, setTransactions] = useState<Transaction[]>([])
     const [loading, setLoading] = useState(false)
@@ -106,7 +110,7 @@ export function TransactionsDashboard() {
                             <TableBody>
                                 {transactions.map((t) => (
                                     <TableRow key={t.id}>
-                                        <TableCell className="font-mono text-xs">{t.transactionReference}</TableCell>
+                                        <TableCell className="font-mono text-xs">{getShortId(t.transactionReference)}</TableCell>
                                         <TableCell className="text-right font-medium">{fmtCurrency(t.amount)} đ</TableCell>
                                         <TableCell>
                                             <Badge variant={typeVariant(t.type)}>{t.type || 'N/A'}</Badge>

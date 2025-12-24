@@ -141,6 +141,10 @@ interface Complaint {
     category: string
 }
 
+const getShortId = (id: string) => {
+    return id.length > 8 ? id.slice(0, 8) + '...' : id
+}
+
 export default function SupplierComplaintsPage() {
     const [selectedTab, setSelectedTab] = useState<ComplaintStatus | "all">("all")
     const [searchTerm, setSearchTerm] = useState("")
@@ -337,7 +341,7 @@ export default function SupplierComplaintsPage() {
                                                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                                     <span className="flex items-center gap-1">
                                                         <FileText className="h-4 w-4" />
-                                                        {complaint.id}
+                                                        {getShortId(complaint.id)}
                                                     </span>
                                                     <span className="flex items-center gap-1">
                                                         <Ship className="h-4 w-4" />
@@ -361,7 +365,7 @@ export default function SupplierComplaintsPage() {
                                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                                                 <div>
                                                     <span className="text-muted-foreground">Đơn hàng:</span>
-                                                    <p className="font-medium">{complaint.orderId}</p>
+                                                    <p className="font-medium">{getShortId(complaint.orderId)}</p>
                                                 </div>
                                                 <div>
                                                     <span className="text-muted-foreground">Chủ tàu:</span>
@@ -413,7 +417,7 @@ export default function SupplierComplaintsPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <Label className="text-xs text-muted-foreground">Mã khiếu nại</Label>
-                                    <p className="font-medium">{selectedComplaint.id}</p>
+                                    <p className="font-medium">{getShortId(selectedComplaint.id)}</p>
                                 </div>
                                 <div>
                                     <Label className="text-xs text-muted-foreground">Trạng thái</Label>
@@ -425,7 +429,7 @@ export default function SupplierComplaintsPage() {
                                 </div>
                                 <div>
                                     <Label className="text-xs text-muted-foreground">Mã đơn hàng</Label>
-                                    <p className="font-medium">{selectedComplaint.orderId}</p>
+                                    <p className="font-medium">{getShortId(selectedComplaint.orderId)}</p>
                                 </div>
                             </div>
 

@@ -51,6 +51,10 @@ import type { ModifierGroup, ModifierOption } from "@/types/Modifier/modifier"
 
 const shortText = (s?: string, n = 80) => (s && s.length > n ? s.slice(0, n) + "…" : s || "")
 
+const getShortId = (id: string) => {
+    return id.length > 8 ? id.slice(0, 8) + '...' : id
+}
+
 const extractError = (err: unknown) => {
     if (!err) return "Lỗi kết nối"
     if (typeof err === "string") return err
@@ -675,7 +679,7 @@ export default function ProductsManagement() {
                                         <TableCell>
                                             <div className="space-y-1">
                                                 <p className="font-medium">{p.name}</p>
-                                                <p className="text-xs text-muted-foreground font-mono">ID: {p.id}</p>
+                                                <p className="text-xs text-muted-foreground font-mono">ID: {getShortId(p.id)}</p>
                                                 {p.description && (
                                                     <p className="text-xs text-muted-foreground">{shortText(p.description, 60)}</p>
                                                 )}

@@ -62,6 +62,10 @@ import { useToast } from "@/hooks/use-toast"
 import { createPaymentApi } from "@/api/payment/paymentApi"
 import { getBoatyardDetailApi } from "@/api/boatyardApi/boatyardApi"
 
+const getShortId = (id: string) => {
+    return id.length > 8 ? id.slice(0, 8) + '...' : id
+}
+
 const STATUS_COLORS: Record<string, { bg: string; text: string; icon: typeof CheckCircle2 }> = {
     pending: { bg: "bg-yellow-100", text: "text-yellow-700", icon: Clock },
     approved: { bg: "bg-blue-100", text: "text-blue-700", icon: CheckCircle2 },
@@ -610,7 +614,7 @@ export default function RepairShopOrders() {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <Label className="text-xs text-muted-foreground">Mã đơn hàng</Label>
-                                                <p className="text-sm font-mono font-semibold mt-1">#{selectedOrder.id}</p>
+                                                <p className="text-sm font-mono font-semibold mt-1">#{getShortId(selectedOrder.id)}</p>
                                             </div>
                                             {selectedOrder.orderCode && (
                                                 <div>

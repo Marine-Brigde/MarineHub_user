@@ -28,6 +28,10 @@ import type {
     BoatyardServiceRequest,
     BoatyardServiceUpdateRequest,
 } from "@/types/boatyardService/boatyardService"
+
+const getShortId = (id: string) => {
+    return id.length > 8 ? id.slice(0, 8) + '...' : id
+}
 import { useToast } from "@/hooks/use-toast"
 
 export function ServicesManagement() {
@@ -307,7 +311,7 @@ export function ServicesManagement() {
                                         <TableCell>
                                             <div>
                                                 <p className="font-medium">{service.typeService}</p>
-                                                <p className="text-xs text-muted-foreground mt-1">ID: {service.id}</p>
+                                                <p className="text-xs text-muted-foreground mt-1">ID: {getShortId(service.id)}</p>
                                             </div>
                                         </TableCell>
                                         <TableCell className="font-medium">

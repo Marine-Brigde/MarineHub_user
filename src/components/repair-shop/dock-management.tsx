@@ -26,6 +26,10 @@ import { useToast } from "@/hooks/use-toast"
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null
 
+const getShortId = (id: string) => {
+    return id.length > 8 ? id.slice(0, 8) + '...' : id
+}
+
 const extractServerMessage = (body: unknown): string => {
     if (!body) return ""
     if (typeof body === "string") return body
@@ -371,7 +375,7 @@ export function DockManagement() {
                                         <TableCell>
                                             <div className="space-y-1">
                                                 <p className="font-medium text-foreground">{dock.name}</p>
-                                                <p className="text-xs text-muted-foreground font-mono">ID: {dock.id}</p>
+                                                <p className="text-xs text-muted-foreground font-mono">ID: {getShortId(dock.id)}</p>
                                             </div>
                                         </TableCell>
                                         <TableCell>

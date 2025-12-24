@@ -49,6 +49,10 @@ const STATUS_LABELS: Record<string, string> = {
     cancelled: "Đã hủy",
 }
 
+const getShortId = (id: string) => {
+    return id.length > 8 ? id.slice(0, 8) + '...' : id
+}
+
 export default function RepairShopBookingDetailPage() {
     const { id } = useParams()
     const navigate = useNavigate()
@@ -190,7 +194,7 @@ export default function RepairShopBookingDetailPage() {
                             <CardContent className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-medium text-muted-foreground">Mã lịch hẹn</span>
-                                    <span className="text-sm font-mono font-semibold">#{booking.id}</span>
+                                    <span className="text-sm font-mono font-semibold">#{getShortId(booking.id)}</span>
                                 </div>
                                 <Separator />
                                 <div className="flex items-center justify-between">

@@ -303,14 +303,7 @@ export default function ProductsPage() {
                                                         <Eye className="mr-2 h-4 w-4" />
                                                         Xem chi tiết
                                                     </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        className="flex-1"
-                                                        onClick={() => navigate(`/supplier/products`)}
-                                                    >
-                                                        <ShoppingCart className="mr-2 h-4 w-4" />
-                                                        Liên hệ
-                                                    </Button>
+                                                   
                                                 </div>
                                             </div>
                                         </CardContent>

@@ -412,7 +412,7 @@ export default function SuppliersPage() {
                                                 onClick={() => navigate(`/suppliers/${supplier.id}`, { state: { supplier } })}
                                             >
                                                 <Building2 className="mr-2 h-4 w-4" />
-                                                Xem chi tiết
+                                                Xem Thêm
                                             </Button>
                                         </CardContent>
                                     </Card>

@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input"
 import { useState, useEffect } from "react"
 import { getOrdersApi } from "@/api/Order/orderApi"
 import { getRevenuesApi } from "@/api/repairShop/revenueApi"
+import { getTransactionsApi, type Transaction } from "@/api/Transaction/transactionApi"
 import type { OrderResponseData } from "@/types/Order/order"
 import type { MonthlyRevenue } from "@/types/repairShop/revenue"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
@@ -29,24 +30,31 @@ const chartConfig = {
     },
     revenue: {
         label: "Doanh thu",
-        color: "hsl(var(--chart-2))",
+        color: "#22c55e",
     },
+}
+
+const getCurrentMonthRange = () => {
+    const now = new Date()
+    const start = new Date(now.getFullYear(), now.getMonth(), 1)
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    const format = (d: Date) => d.toISOString().slice(0, 10)
+    return { startDate: format(start), endDate: format(end) }
 }
 
 export function SupplierDashboard() {
     const [revenueData, setRevenueData] = useState<{ month: string; revenue: number }[]>([])
     const [revLoading, setRevLoading] = useState(false)
     const [revError, setRevError] = useState<string | null>(null)
-    const [startDate, setStartDate] = useState<string>(() => {
-        const d = new Date()
-        d.setDate(d.getDate() - 30)
-        return d.toISOString().slice(0, 10)
-    })
-    const [endDate, setEndDate] = useState<string>(() => new Date().toISOString().slice(0, 10))
+    const [startDate, setStartDate] = useState<string>(() => getCurrentMonthRange().startDate)
+    const [endDate, setEndDate] = useState<string>(() => getCurrentMonthRange().endDate)
     const [rawRevenues, setRawRevenues] = useState<MonthlyRevenue[]>([])
     const [ordersCount, setOrdersCount] = useState<number | null>(null)
     const [latestOrders, setLatestOrders] = useState<OrderResponseData[]>([])
     const [totalRevenue, setTotalRevenue] = useState<number>(0)
+    const [transactions, setTransactions] = useState<Transaction[]>([])
+    const [transactionsLoading, setTransactionsLoading] = useState(false)
+    const [transactionsError, setTransactionsError] = useState<string | null>(null)
     const [orderStatusData, setOrderStatusData] = useState<{ name: string; value: number; color: string }[]>([
         { name: "Chờ xử lý", value: 0, color: "#f59e0b" },
         { name: "Đã duyệt", value: 0, color: "#3b82f6" },
@@ -59,15 +67,18 @@ export function SupplierDashboard() {
         setRevLoading(true)
         setRevError(null)
         try {
-            // Load revenues data from API
-            const res = await getRevenuesApi({ startDate: start, endDate: end })
+            // Load revenues data from API (default to current month when no params)
+            const res = await getRevenuesApi({
+                startDate: start || undefined,
+                endDate: end || undefined,
+            })
             const items: MonthlyRevenue[] = (res as any)?.data ?? []
             setRawRevenues(items)
-            
+
             // Tính tổng revenue từ revenue API (để đảm bảo khớp với dashboard)
             const totalRevenueFromApi = items.reduce((sum, item) => sum + (Number(item.totalRevenue || 0)), 0)
             setTotalRevenue(totalRevenueFromApi)
-            
+
             // map to chart format: show month label as T{month}
             const mapped = items.map((it) => ({ month: `T${it.month}`, revenue: Number(it.totalRevenue || 0) }))
             setRevenueData(mapped.slice(0, 6).reverse())
@@ -130,8 +141,24 @@ export function SupplierDashboard() {
         }
     }
 
+    const loadTransactions = async () => {
+        setTransactionsLoading(true)
+        setTransactionsError(null)
+        try {
+            const res = await getTransactionsApi({ page: 1, size: 10, sortBy: "createdDate", isAsc: false })
+            const items: Transaction[] = (res as any)?.data?.items ?? []
+            setTransactions(items)
+        } catch (err) {
+            console.error("loadTransactions error", err)
+            setTransactionsError("Không thể tải giao dịch")
+        } finally {
+            setTransactionsLoading(false)
+        }
+    }
+
     useEffect(() => {
         loadOrders(startDate, endDate)
+        loadTransactions()
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
@@ -163,7 +190,7 @@ export function SupplierDashboard() {
             <div className="grid gap-4 md:grid-cols-2">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Doanh thu 6 tháng</CardTitle>
+                        <CardTitle>Doanh thu</CardTitle>
                         <CardDescription>Biểu đồ doanh thu theo tháng</CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -226,18 +253,32 @@ export function SupplierDashboard() {
                                         <th className="pb-2">Tháng</th>
                                         <th className="pb-2">Năm</th>
                                         <th className="pb-2 text-right">Tổng doanh thu</th>
+                                        <th className="pb-2 text-right">Lợi nhuận ròng</th>
+                                        <th className="pb-2 text-center">Đã chuyển</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {rawRevenues.length === 0 ? (
                                         <tr>
-                                            <td colSpan={3} className="py-3 text-muted-foreground">Chưa có dữ liệu</td>
+                                            <td colSpan={5} className="py-3 text-muted-foreground">Chưa có dữ liệu</td>
                                         </tr>
                                     ) : rawRevenues.map((r, idx) => (
                                         <tr key={idx} className="border-t">
                                             <td className="py-2">{`T${r.month}`}</td>
                                             <td className="py-2">{r.year}</td>
                                             <td className="py-2 text-right">{Number(r.totalRevenue).toLocaleString('vi-VN')} đ</td>
+                                            <td className="py-2 text-right">{Number(r.netRevenue ?? r.totalRevenue ?? 0).toLocaleString('vi-VN')} đ</td>
+                                            <td className="py-2 text-center">
+                                                {r.isTransferred ? (
+                                                    <Badge variant="outline" className="border-emerald-500/50 text-emerald-700 bg-emerald-500/10">
+                                                        Đã chuyển
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge variant="outline" className="border-amber-500/50 text-amber-700 bg-amber-500/10">
+                                                        Chưa chuyển
+                                                    </Badge>
+                                                )}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -326,6 +367,62 @@ export function SupplierDashboard() {
                                 </div>
                             ))}
                         </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Giao dịch</CardTitle>
+                        <CardDescription>Danh sách giao dịch gần đây</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {transactionsLoading ? (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>Đang tải giao dịch...</span>
+                            </div>
+                        ) : transactionsError ? (
+                            <div className="text-sm text-destructive">{transactionsError}</div>
+                        ) : transactions.length === 0 ? (
+                            <div className="text-sm text-muted-foreground">Chưa có giao dịch</div>
+                        ) : (
+                            <div className="space-y-3">
+                                {transactions.map((tx) => (
+                                    <div key={tx.id} className="rounded-lg border border-border/50 p-3 flex items-center justify-between gap-3">
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-medium text-foreground line-clamp-1">{tx.transactionReference}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {new Date(tx.createdDate).toLocaleString("vi-VN", {
+                                                    day: "2-digit",
+                                                    month: "2-digit",
+                                                    year: "numeric",
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                })}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">Loại: {tx.type}</p>
+                                        </div>
+                                        <div className="text-right space-y-1">
+                                            <p className="text-sm font-semibold text-primary">
+                                                {Number(tx.amount || 0).toLocaleString("vi-VN")} đ
+                                            </p>
+                                            <Badge
+                                                variant="outline"
+                                                className={
+                                                    tx.status === "Approved"
+                                                        ? "border-emerald-500/50 text-emerald-700 bg-emerald-500/10"
+                                                        : tx.status === "Pending"
+                                                            ? "border-amber-500/50 text-amber-700 bg-amber-500/10"
+                                                            : "border-red-500/50 text-red-700 bg-red-500/10"
+                                                }
+                                            >
+                                                {tx.status === "Approved" ? "Đã duyệt" : tx.status === "Pending" ? "Chờ duyệt" : tx.status}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

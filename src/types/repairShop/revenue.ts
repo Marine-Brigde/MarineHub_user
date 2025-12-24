@@ -5,6 +5,8 @@ export interface MonthlyRevenue {
     year: string
     totalRevenue: number
     netRevenue: number
+    isTransferred?: boolean
+    transferredDate?: string | null
 }
 
 export interface RevenuesResponse {

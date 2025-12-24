@@ -28,6 +28,7 @@ import SupplierReviewsPage from '@/page/supplier/reviews/reviews';
 import SupplierModifierGroupsPage from '@/page/supplier/modifier-groups/modifier-groups';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import PaymentSuccessPage from '@/page/payment/success';
+import PaymentFailedPage from '@/page/payment/failed';
 import RepairShopBookingsPage from '@/page/repair-shop/bookings/bookings';
 import RepairShopBookingDetailPage from '@/page/repair-shop/bookings/bookingDetail';
 
@@ -172,6 +173,10 @@ const router = createBrowserRouter([
     {
         path: '/success',
         element: <PaymentSuccessPage />,
+    },
+    {
+        path: '/failed',
+        element: <PaymentFailedPage />,
     }
 
 ]);

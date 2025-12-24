@@ -14,19 +14,13 @@ import {
 } from "@/components/ui/breadcrumb"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts"
 import { getRevenuesApi } from "@/api/repairShop/revenueApi"
 import { getBookingsApi } from '@/api/booking/bookingApi'
 import type { MonthlyRevenue } from "@/types/repairShop/revenue"
 import { Input } from "@/components/ui/input"
 import { Loader2 } from "lucide-react"
-
-const serviceTypeData = [
-    { name: "Sửa chữa động cơ", value: 35, color: "hsl(var(--chart-1))" },
-    { name: "Bảo trì định kỳ", value: 28, color: "hsl(var(--chart-2))" },
-    { name: "Sửa chữa khẩn cấp", value: 20, color: "hsl(var(--chart-3))" },
-    { name: "Nâng cấp thiết bị", value: 17, color: "hsl(var(--chart-4))" },
-]
+import { TransactionsList } from "./transactions-list"
 
 const chartConfig = {
     completed: {
@@ -35,7 +29,7 @@ const chartConfig = {
     },
     revenue: {
         label: "Doanh thu",
-        color: "hsl(var(--chart-2))",
+        color: "#22c55e",
     },
 }
 
@@ -45,7 +39,7 @@ export function RepairShopDashboard() {
     const [revError, setRevError] = useState<string | null>(null)
     const [startDate, setStartDate] = useState<string>(() => {
         const d = new Date()
-        d.setDate(d.getDate() - 30)
+        d.setDate(1) // Ngày đầu tháng
         return d.toISOString().slice(0, 10)
     })
     const [endDate, setEndDate] = useState<string>(() => new Date().toISOString().slice(0, 10))
@@ -128,8 +122,8 @@ export function RepairShopDashboard() {
             <div className="grid gap-4 md:grid-cols-2">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Dịch vụ hoàn thành 6 tháng</CardTitle>
-                        <CardDescription>Số lượng dịch vụ hoàn thành theo tháng</CardDescription>
+                        <CardTitle>Doanh thu</CardTitle>
+                        <CardDescription>Biểu đồ doanh thu theo tháng</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="flex items-center gap-2 mb-3">
@@ -160,7 +154,7 @@ export function RepairShopDashboard() {
                                         <XAxis dataKey="month" />
                                         <YAxis />
                                         <ChartTooltip content={<ChartTooltipContent />} />
-                                        <Bar dataKey="revenue" fill="var(--color-completed)" radius={4} />
+                                        <Bar dataKey="revenue" fill="var(--color-revenue)" radius={4} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </ChartContainer>
@@ -179,18 +173,36 @@ export function RepairShopDashboard() {
                                         <th className="pb-2">Tháng</th>
                                         <th className="pb-2">Năm</th>
                                         <th className="pb-2 text-right">Tổng doanh thu</th>
+                                        <th className="pb-2 text-right">Lợi nhuận ròng</th>
+                                        <th className="pb-2 text-center">Đã chuyển</th>
+                                        <th className="pb-2 text-center">Ngày chuyển</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {rawRevenues.length === 0 ? (
                                         <tr>
-                                            <td colSpan={3} className="py-3 text-muted-foreground">Chưa có dữ liệu</td>
+                                            <td colSpan={6} className="py-3 text-muted-foreground">Chưa có dữ liệu</td>
                                         </tr>
                                     ) : rawRevenues.map((r, idx) => (
                                         <tr key={idx} className="border-t">
                                             <td className="py-2">{`T${r.month}`}</td>
                                             <td className="py-2">{r.year}</td>
                                             <td className="py-2 text-right">{Number(r.totalRevenue).toLocaleString('vi-VN')} đ</td>
+                                            <td className="py-2 text-right">{Number(r.netRevenue ?? r.totalRevenue ?? 0).toLocaleString('vi-VN')} đ</td>
+                                            <td className="py-2 text-center">
+                                                {r.isTransferred ? (
+                                                    <Badge variant="outline" className="border-emerald-500/50 text-emerald-700 bg-emerald-500/10">
+                                                        Đã chuyển
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge variant="outline" className="border-amber-500/50 text-amber-700 bg-amber-500/10">
+                                                        Chưa chuyển
+                                                    </Badge>
+                                                )}
+                                            </td>
+                                            <td className="py-2 text-center text-xs text-muted-foreground">
+                                                {r.transferredDate ? new Date(r.transferredDate).toLocaleDateString('vi-VN') : '-'}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -246,43 +258,7 @@ export function RepairShopDashboard() {
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Phân loại dịch vụ</CardTitle>
-                        <CardDescription>Tỷ lệ các loại dịch vụ sửa chữa</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ChartContainer config={chartConfig} className="h-[200px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={serviceTypeData}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={40}
-                                        outerRadius={80}
-                                        paddingAngle={5}
-                                        dataKey="value"
-                                    >
-                                        {serviceTypeData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.color} />
-                                        ))}
-                                    </Pie>
-                                    <ChartTooltip content={<ChartTooltipContent />} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                        <div className="grid grid-cols-2 gap-2 mt-4">
-                            {serviceTypeData.map((item, index) => (
-                                <div key={index} className="flex items-center gap-2 text-xs">
-                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                                    <span className="truncate">{item.name}</span>
-                                    <span className="font-medium">{item.value}%</span>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
+                <TransactionsList />
             </div>
 
         </div>

@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import Header from '@/components/common/header'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { XCircle, AlertTriangle, Home, ArrowLeft } from 'lucide-react'
+import { XCircle, AlertTriangle, Home } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 export default function PaymentFailedPage() {
@@ -94,19 +94,11 @@ export default function PaymentFailedPage() {
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                                <Button
-                                    onClick={() => navigate(-1)}
-                                    variant="default"
-                                    className="flex-1 gap-2"
-                                >
-                                    <ArrowLeft className="h-4 w-4" />
-                                    Thử lại thanh toán
-                                </Button>
+                            <div className="flex justify-center pt-4">
                                 <Button
                                     onClick={() => navigate('/')}
-                                    variant="outline"
-                                    className="flex-1 gap-2"
+                                    variant="default"
+                                    className="gap-2"
                                 >
                                     <Home className="h-4 w-4" />
                                     Về trang chủ

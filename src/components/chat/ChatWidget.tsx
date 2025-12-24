@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -8,13 +8,21 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Anchor, X, Send, Loader2, Package } from "lucide-react"
 import { sendChatMessageApi } from "@/api/chat/chatApi"
-import type { ChatResponse, ChatProduct } from "@/types/chat/chat"
+import { getBoatyardDetailApi } from "@/api/boatyardApi/boatyardApi"
+import type { ChatResponse, ChatProduct, ChatRequest, ChatSupplier } from "@/types/chat/chat"
+
+// Render markdown bold text: **text** -> <strong>text</strong>
+const renderMarkdownBold = (text: string) => {
+    const parts = text.split('**')
+    return parts.map((part, i) => (i % 2 === 1 ? <strong key={i}>{part}</strong> : part))
+}
 
 interface Message {
     id: string
     type: "user" | "assistant"
     content: string
     products?: ChatProduct[]
+    suppliers?: ChatSupplier[]
     timestamp: string
 }
 
@@ -33,7 +41,7 @@ const saveMessagesToStorage = (messages: Message[], username: string) => {
 // Load messages từ localStorage và filter những messages trong vòng 3 giờ
 const loadMessagesFromStorage = (username: string | null): Message[] => {
     if (!username) return []
-    
+
     try {
         const key = `maritimehub_chat_history_${username}`
         const stored = localStorage.getItem(key)
@@ -41,7 +49,7 @@ const loadMessagesFromStorage = (username: string | null): Message[] => {
 
         const messages: Message[] = JSON.parse(stored)
         const now = new Date().getTime()
-        
+
         // Filter messages trong vòng 3 giờ
         const validMessages = messages.filter((message) => {
             const messageTime = new Date(message.timestamp).getTime()
@@ -63,7 +71,7 @@ const loadMessagesFromStorage = (username: string | null): Message[] => {
 // Cleanup messages cũ hơn 3 giờ
 const cleanupOldMessages = (username: string | null) => {
     if (!username) return
-    
+
     try {
         const key = `maritimehub_chat_history_${username}`
         const stored = localStorage.getItem(key)
@@ -71,7 +79,7 @@ const cleanupOldMessages = (username: string | null) => {
 
         const messages: Message[] = JSON.parse(stored)
         const now = new Date().getTime()
-        
+
         const validMessages = messages.filter((message) => {
             const messageTime = new Date(message.timestamp).getTime()
             return now - messageTime < CHAT_HISTORY_DURATION
@@ -104,7 +112,41 @@ export default function ChatWidget() {
         }
         return null
     })
+    const [boatyardLocation, setBoatyardLocation] = useState<{ longitude: number; latitude: number } | null>(null)
+    const [, setIsLocationLoading] = useState(false)
     const scrollAreaRef = useRef<HTMLDivElement>(null)
+
+    // Fetch boatyard location; reuse for initial load and before sending chat
+    const loadBoatyardLocation = useCallback(async () => {
+        console.log("Starting to fetch boatyard location...")
+        setIsLocationLoading(true)
+        try {
+            const response = await getBoatyardDetailApi()
+            console.log("Boatyard API response:", response)
+
+            // Chấp nhận theo data/status vì backend không trả isSuccess
+            if (response && response.data) {
+                console.log("Raw longitude:", response.data.longitude, "latitude:", response.data.latitude)
+                const location = {
+                    longitude: parseFloat(response.data.longitude),
+                    latitude: parseFloat(response.data.latitude),
+                }
+                console.log("Parsed location:", location)
+                console.log("Is valid location?", !isNaN(location.longitude) && !isNaN(location.latitude))
+                if (!isNaN(location.longitude) && !isNaN(location.latitude)) {
+                    setBoatyardLocation(location)
+                    return location
+                }
+            } else {
+                console.warn("Boatyard API response is not successful or has no data")
+            }
+        } catch (error) {
+            console.error("Error fetching boatyard location:", error)
+        } finally {
+            setIsLocationLoading(false)
+        }
+        return null
+    }, [])
 
     // Check user role và username từ localStorage và listen for changes
     useEffect(() => {
@@ -144,12 +186,16 @@ export default function ChatWidget() {
         if (userRole !== "Boatyard" || !username) {
             // Reset messages nếu không phải Boatyard hoặc chưa có username
             setMessages([])
+            setBoatyardLocation(null)
             return
         }
 
         const loadedMessages = loadMessagesFromStorage(username)
         setMessages(loadedMessages)
-        
+
+        // Lấy thông tin boatyard để có longitude và latitude
+        loadBoatyardLocation()
+
         // Cleanup messages cũ mỗi 30 phút
         const cleanupInterval = setInterval(() => {
             cleanupOldMessages(username)
@@ -158,7 +204,7 @@ export default function ChatWidget() {
         }, 30 * 60 * 1000) // 30 phút
 
         return () => clearInterval(cleanupInterval)
-    }, [userRole, username])
+    }, [userRole, username, loadBoatyardLocation])
 
     // Lưu messages vào localStorage mỗi khi có thay đổi
     useEffect(() => {
@@ -182,6 +228,13 @@ export default function ChatWidget() {
     const handleSendMessage = async () => {
         if (!inputValue.trim() || isLoading) return
 
+        console.log("Current boatyardLocation:", boatyardLocation)
+        // Cảnh báo nếu chưa có location
+        if (!boatyardLocation) {
+            console.warn("⚠️ Boatyard location not loaded yet!")
+        }
+
+
         const userMessage: Message = {
             id: Date.now().toString(),
             type: "user",
@@ -194,15 +247,48 @@ export default function ChatWidget() {
         setIsLoading(true)
 
         try {
-            const response: ChatResponse = await sendChatMessageApi({
+            // Đảm bảo có location: nếu chưa có thì fetch trước khi gửi
+            let location = boatyardLocation
+            if (!location) {
+                location = await loadBoatyardLocation()
+            }
+
+            // Nếu vẫn chưa có tọa độ hợp lệ, trả lỗi và không gọi API
+            if (
+                !location ||
+                typeof location.longitude !== "number" ||
+                typeof location.latitude !== "number" ||
+                isNaN(location.longitude) ||
+                isNaN(location.latitude)
+            ) {
+                console.warn("⚠️ Không thể lấy tọa độ boatyard, hủy gửi chat")
+                const errorMessage: Message = {
+                    id: (Date.now() + 2).toString(),
+                    type: "assistant",
+                    content: "Không thể lấy tọa độ của xưởng. Vui lòng thử lại sau.",
+                    timestamp: new Date().toISOString(),
+                }
+                setMessages((prev) => [...prev, errorMessage])
+                setIsLoading(false)
+                return
+            }
+
+            // Build request với tọa độ bắt buộc
+            const chatRequest: ChatRequest = {
                 prompt: userMessage.content,
-            })
+                longitude: location.longitude,
+                latitude: location.latitude,
+            }
+
+            console.log("Sending chat request:", chatRequest)
+            const response: ChatResponse = await sendChatMessageApi(chatRequest)
 
             const assistantMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 type: "assistant",
                 content: response.promptResponse,
                 products: response.products || undefined,
+                suppliers: response.suppliers || undefined,
                 timestamp: response.timestamp,
             }
 
@@ -304,15 +390,43 @@ export default function ChatWidget() {
                                             className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}
                                         >
                                             <div
-                                                className={`max-w-[85%] rounded-lg px-4 py-2.5 ${
-                                                    message.type === "user"
-                                                        ? "bg-primary text-primary-foreground"
-                                                        : "bg-muted"
-                                                }`}
+                                                className={`max-w-[85%] rounded-lg px-4 py-2.5 ${message.type === "user"
+                                                    ? "bg-primary text-primary-foreground"
+                                                    : "bg-muted"
+                                                    }`}
                                             >
                                                 <p className="text-sm whitespace-pre-wrap break-words">
-                                                    {message.content}
+                                                    {renderMarkdownBold(message.content)}
                                                 </p>
+
+                                                {/* Suppliers List - Hiển thị nhà cung cấp gần nhất */}
+                                                {message.suppliers && message.suppliers.length > 0 && (
+                                                    <div className="mt-3 space-y-2 pt-3 border-t border-border/50">
+                                                        <p className="text-xs font-semibold mb-2 flex items-center gap-1">
+                                                            <Package className="h-3 w-3" />
+                                                            Nhà cung cấp gần nhất:
+                                                        </p>
+                                                        <div className="space-y-2">
+                                                            {(message.suppliers as ChatSupplier[]).map((supplier) => (
+                                                                <div
+                                                                    key={supplier.Id}
+                                                                    className="bg-background/50 rounded-md p-2 border border-border/50 hover:bg-background transition-colors"
+                                                                >
+                                                                    <div className="flex items-start justify-between gap-2">
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <p className="text-xs font-medium">
+                                                                                {supplier.Name}
+                                                                            </p>
+                                                                            <p className="text-xs text-muted-foreground mt-1">
+                                                                                Cách: <strong>{supplier.distance_km.toFixed(2)}</strong> km
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
 
                                                 {/* Products List */}
                                                 {message.products && message.products.length > 0 && (

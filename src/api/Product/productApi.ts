@@ -97,14 +97,44 @@ export const updateProductApi = async (id: string, data: {
 }
 
 // ➕ POST - Thêm product variant cho product (JSON)
-export const createProductVariantApi = async (productId: string, payload: { name: string; price: number }) => {
+export const createProductVariantApi = async (
+    productId: string,
+    payload: { name: string; price: number; modifierOptionIds?: string[] }
+) => {
     const response = await axiosClient.post<BaseResponse<string>>(`/v1/products/${productId}/product-variants`, payload)
     return response.data
 }
 
 // ✏️ PATCH - Cập nhật ProductVariant (application/json)
-export const updateProductVariantApi = async (variantId: string, payload: { name?: string; price?: number }) => {
+export const updateProductVariantApi = async (
+    variantId: string,
+    payload: { name?: string; price?: number; modifierOptionIds?: string[] }
+) => {
     const response = await axiosClient.patch<BaseResponse<string>>(`/v1/product-variants/${variantId}`, payload)
+    return response.data
+}
+
+// 📦 Lấy chi tiết ProductVariant (GET /api/v1/product-variants/{id})
+export const getProductVariantByIdApi = async (variantId: string) => {
+    const response = await axiosClient.get<BaseResponse<ProductVariant>>(`/v1/product-variants/${variantId}`)
+    return response.data
+}
+
+// 🗑️ Xóa ProductVariant (set isActive = false)
+export const deleteProductVariantApi = async (variantId: string) => {
+    const response = await axiosClient.patch<BaseResponse<string>>(
+        `/v1/product-variants/${variantId}`,
+        { isActive: false }
+    )
+    return response.data
+}
+
+// ✅ Khôi phục ProductVariant (set isActive = true)
+export const restoreProductVariantApi = async (variantId: string) => {
+    const response = await axiosClient.patch<BaseResponse<string>>(
+        `/v1/product-variants/${variantId}`,
+        { isActive: true }
+    )
     return response.data
 }
 

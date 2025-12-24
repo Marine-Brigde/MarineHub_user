@@ -1,6 +1,7 @@
 // src/types/dockSlot.ts
 
 export interface DockSlot {
+    isExpired: boolean
     id: string
     name: string
     assignedFrom: string | null

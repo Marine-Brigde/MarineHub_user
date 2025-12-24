@@ -338,17 +338,18 @@ export function DockManagement() {
                     <Table>
                         <TableHeader>
                             <TableRow className="hover:bg-transparent border-border/50">
-                                <TableHead className="w-[30%]">Tên Bến Đậu</TableHead>
-                                <TableHead className="w-[20%]">Thời gian nhận</TableHead>
-                                <TableHead className="w-[20%]">Thời gian trả</TableHead>
-                                <TableHead className="w-[15%]">Trạng thái</TableHead>
+                                <TableHead className="w-[26%]">Tên Bến Đậu</TableHead>
+                                <TableHead className="w-[18%]">Thời gian nhận</TableHead>
+                                <TableHead className="w-[18%]">Thời gian trả</TableHead>
+                                <TableHead className="w-[10%]">Hiệu lực</TableHead>
+                                <TableHead className="w-[13%]">Trạng thái</TableHead>
                                 <TableHead className="w-[15%] text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {loading ? (
                                 <TableRow>
-                                    <TableCell colSpan={3} className="h-32 text-center">
+                                    <TableCell colSpan={6} className="h-32 text-center">
                                         <div className="flex items-center justify-center gap-2 text-muted-foreground">
                                             <Loader2 className="h-4 w-4 animate-spin" />
                                             <span>Đang tải...</span>
@@ -357,7 +358,7 @@ export function DockManagement() {
                                 </TableRow>
                             ) : filtered.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={3} className="h-32 text-center">
+                                    <TableCell colSpan={6} className="h-32 text-center">
                                         <div className="flex flex-col items-center gap-2 text-muted-foreground">
                                             <Search className="h-8 w-8 opacity-50" />
                                             <p className="text-sm">{searchTerm ? "Không tìm thấy bến đậu phù hợp" : "Chưa có bến đậu nào"}</p>
@@ -378,6 +379,25 @@ export function DockManagement() {
                                         </TableCell>
                                         <TableCell>
                                             <p className="text-sm text-foreground">{formatDateTime(dock.assignedUntil)}</p>
+                                        </TableCell>
+
+                                        {/* Expire state */}
+                                        <TableCell>
+                                            {dock.isExpired ? (
+                                                <Badge
+                                                    variant="outline"
+                                                    className="gap-1.5 border-red-500/50 bg-red-500/10 text-red-700 dark:text-red-400"
+                                                >
+                                                    Hết hạn
+                                                </Badge>
+                                            ) : (
+                                                <Badge
+                                                    variant="outline"
+                                                    className="gap-1.5 border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                                                >
+                                                    Còn hạn
+                                                </Badge>
+                                            )}
                                         </TableCell>
 
                                         {/* Status cell: compact switch + badge */}

@@ -20,6 +20,16 @@ import {
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -28,11 +38,11 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
-import { Plus, Edit, Search, Loader2, Trash2, X, ChevronLeft, ChevronRight } from "lucide-react"
+import { Plus, Edit, Search, Loader2, Trash2, X, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
-import { getSupplierProductsApi, createSupplierProductApi, updateSupplierProductApi, deleteSupplierProductApi } from "@/api/Product/supplierProductApi"
-import { getProductByIdApi } from '@/api/Product/productApi'
+import { getSupplierProductsApi, createSupplierProductApi, updateSupplierProductApi, deleteSupplierProductApi, restoreSupplierProductApi } from "@/api/Product/supplierProductApi"
+import { getProductByIdApi, createProductVariantApi, updateProductVariantApi, deleteProductVariantApi } from '@/api/Product/productApi'
 import { getCategoriesApi } from "@/api/Category/categoryApi"
 import type { Product, CreateProductRequest, UpdateProductRequest, ProductVariant } from "@/types/Product/supplierProduct"
 import type { Category } from "@/types/Category/category"
@@ -81,19 +91,23 @@ export default function ProductsManagement() {
     const [total, setTotal] = useState(0)
     const [totalPages, setTotalPages] = useState(0)
     const [searchTerm, setSearchTerm] = useState("")
+    const [showDeleted, setShowDeleted] = useState(false)
 
     const [showDialog, setShowDialog] = useState(false)
     const [editProduct, setEditProduct] = useState<Product | null>(null)
     const [formLoading, setFormLoading] = useState(false)
     const [formError, setFormError] = useState("")
+    const [confirmAction, setConfirmAction] = useState<{ id: string; name: string; type: 'delete' | 'restore' } | null>(null)
+    const [confirmLoading, setConfirmLoading] = useState(false)
 
     const [name, setName] = useState("")
     const [description, setDescription] = useState("")
     const [categoryId, setCategoryId] = useState("")
     const [price, setPrice] = useState("")
     const [isHasVariant, setIsHasVariant] = useState(false)
-    // Extend local ProductVariant shape to include modifierOptionIds for UI
-    const [productVariants, setProductVariants] = useState<(ProductVariant & { modifierOptionIds?: string[] })[]>([])
+    const [productVariants, setProductVariants] = useState<ProductVariant[]>([])
+    const [originalVariants, setOriginalVariants] = useState<ProductVariant[]>([]) // Track original data
+    const [variantModifierDetails, setVariantModifierDetails] = useState<Record<string, any[]>>({}) // Store modifier details per variant
     // For non-variant products, collect modifier option ids at top-level
     const [modifierOptionIds, setModifierOptionIds] = useState<string[]>([])
     const [productImages, setProductImages] = useState<File[]>([])
@@ -135,11 +149,19 @@ export default function ProductsManagement() {
             size,
             name: searchTerm || undefined,
             sortBy: 'createdDate',
-            isAsc: false
+            isAsc: false,
         })
             .then((res) => {
                 const data = (res as any)?.data ?? res
-                const items = data?.items ?? []
+                let items = data?.items ?? []
+
+                // Filter trên frontend
+                if (showDeleted) {
+                    items = items.filter((p: Product) => p.isActive === false)
+                } else {
+                    items = items.filter((p: Product) => p.isActive !== false)
+                }
+
                 setProducts(items)
                 setTotal(data?.total ?? 0)
                 setTotalPages(data?.totalPages ?? 0)
@@ -188,7 +210,7 @@ export default function ProductsManagement() {
     useEffect(() => {
         fetchProducts()
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page, searchTerm])
+    }, [page, searchTerm, showDeleted])
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault()
@@ -204,6 +226,8 @@ export default function ProductsManagement() {
         setPrice("")
         setIsHasVariant(false)
         setProductVariants([])
+        setOriginalVariants([])
+        setVariantModifierDetails({})
         setProductImages([])
         cleanupImagePreviews()
         setImagePreviews([])
@@ -229,8 +253,36 @@ export default function ProductsManagement() {
             if (detail) {
                 // If product has variants, map them to supplier ProductVariant type
                 if (Array.isArray(detail.productVariants) && detail.productVariants.length > 0 && p.isHasVariant) {
-                    const mapped = detail.productVariants.map((v: any) => ({ name: v.name || '', price: Number(v.price || 0) }))
+                    // Filter to only include active variants (isActive === true)
+                    const activeVariants = detail.productVariants.filter((v: any) => v.isActive !== false)
+                    const modifierDetailsMap: Record<string, any[]> = {}
+
+                    const mapped = activeVariants.map((v: any) => {
+                        // Extract modifierOptionIds from nested modifierGroups structure
+                        let modifierOptionIds: string[] = []
+                        if (Array.isArray(v.modifierGroups)) {
+                            // Store the full modifier groups details for display
+                            modifierDetailsMap[v.id] = v.modifierGroups
+
+                            modifierOptionIds = v.modifierGroups.flatMap((group: any) =>
+                                Array.isArray(group.modifierOptions)
+                                    ? group.modifierOptions.map((opt: any) => opt.id)
+                                    : []
+                            )
+                        } else if (Array.isArray(v.modifierOptionIds)) {
+                            modifierOptionIds = v.modifierOptionIds
+                        }
+
+                        return {
+                            id: v.id,
+                            name: v.name || '',
+                            price: Number(v.price || 0),
+                            modifierOptionIds,
+                        }
+                    })
                     setProductVariants(mapped)
+                    setOriginalVariants(JSON.parse(JSON.stringify(mapped))) // Deep clone for comparison
+                    setVariantModifierDetails(modifierDetailsMap)
                     setPrice('')
                 } else {
                     // No variants: use product-level price if available
@@ -295,8 +347,42 @@ export default function ProductsManagement() {
         setProductVariants((prev) => [...prev, { name: "", price: 0, modifierOptionIds: [] }])
     }
 
-    const removeVariant = (index: number) => {
-        setProductVariants((prev) => prev.filter((_, i) => i !== index))
+    const removeVariant = async (index: number) => {
+        const variant = productVariants[index]
+
+        // Check if there are enough active variants (minimum 2 required)
+        const activeVariants = productVariants.filter((v) => v.name.trim() !== "")
+        if (activeVariants.length <= 1) {
+            toast({
+                title: "Không thể xóa",
+                description: "Sản phẩm phải có ít nhất 1 biến thể",
+                variant: "destructive",
+            })
+            return
+        }
+
+        // If variant has id (existing variant), call API to set isActive = false
+        if (variant.id && editProduct) {
+            try {
+                await deleteProductVariantApi(variant.id)
+                toast({
+                    title: "Thành công",
+                    description: "Đã xóa biến thể",
+                    variant: "success",
+                })
+                // Remove from UI
+                setProductVariants((prev) => prev.filter((_, i) => i !== index))
+            } catch (err) {
+                toast({
+                    title: "Lỗi",
+                    description: extractError(err),
+                    variant: "destructive",
+                })
+            }
+        } else {
+            // New variant (no id yet), just remove from UI
+            setProductVariants((prev) => prev.filter((_, i) => i !== index))
+        }
     }
 
     const updateVariant = (index: number, field: 'name' | 'price', value: string | number) => {
@@ -350,20 +436,19 @@ export default function ProductsManagement() {
             }
         }
 
+        let validVariants: ProductVariant[] = []
         if (isHasVariant) {
-            if (productVariants.length === 0) {
-                setFormError("Sản phẩm có biến thể phải có ít nhất một biến thể")
+            // Filter out empty variants (those with empty name)
+            validVariants = productVariants.filter((v) => v.name.trim() !== "")
+
+            if (validVariants.length === 0) {
+                setFormError("Sản phẩm có biến thể phải có ít nhất một biến thể (không rỗng)")
                 setFormLoading(false)
                 return
             }
 
-            // Validate variants
-            for (const variant of productVariants) {
-                if (!variant.name.trim()) {
-                    setFormError("Tên biến thể không được để trống")
-                    setFormLoading(false)
-                    return
-                }
+            // Validate non-empty variants
+            for (const variant of validVariants) {
                 if (variant.price <= 0) {
                     setFormError("Giá biến thể phải là số dương")
                     setFormLoading(false)
@@ -386,11 +471,56 @@ export default function ProductsManagement() {
                     categoryId,
                     price: isHasVariant ? undefined : (price ? priceNum : undefined),
                     isHasVariant,
-                    productVariants: isHasVariant ? productVariants : undefined,
+                    // Variants are handled via dedicated APIs below
                     modifierOptionIds: !isHasVariant ? modifierOptionIds : undefined,
                     productImages: productImages.length > 0 ? productImages : undefined,
                 }
+
                 await updateSupplierProductApi(editProduct.id, payload)
+
+                if (isHasVariant) {
+                    const existingVariants = validVariants.filter((v) => v.id)
+                    const newVariants = validVariants.filter((v) => !v.id)
+
+                    // Only update variants that have changed
+                    if (existingVariants.length > 0) {
+                        const changedVariants = existingVariants.filter((v) => {
+                            const original = originalVariants.find((o) => o.id === v.id)
+                            if (!original) return true // New variant with id (shouldn't happen)
+
+                            // Check if any field changed
+                            const nameChanged = v.name.trim() !== original.name.trim()
+                            const priceChanged = v.price !== original.price
+                            const modifiersChanged = JSON.stringify(v.modifierOptionIds?.sort()) !== JSON.stringify(original.modifierOptionIds?.sort())
+
+                            return nameChanged || priceChanged || modifiersChanged
+                        })
+
+                        if (changedVariants.length > 0) {
+                            await Promise.all(
+                                changedVariants.map((v) =>
+                                    updateProductVariantApi(v.id!, {
+                                        name: v.name.trim(),
+                                        price: v.price,
+                                        modifierOptionIds: v.modifierOptionIds && v.modifierOptionIds.length > 0 ? v.modifierOptionIds : undefined,
+                                    })
+                                )
+                            )
+                        }
+                    }
+
+                    if (newVariants.length > 0) {
+                        await Promise.all(
+                            newVariants.map((v) =>
+                                createProductVariantApi(editProduct.id, {
+                                    name: v.name.trim(),
+                                    price: v.price,
+                                    modifierOptionIds: v.modifierOptionIds && v.modifierOptionIds.length > 0 ? v.modifierOptionIds : undefined,
+                                })
+                            )
+                        )
+                    }
+                }
             } else {
                 const payload: CreateProductRequest = {
                     name: trimmedName,
@@ -398,7 +528,7 @@ export default function ProductsManagement() {
                     categoryId,
                     price: isHasVariant ? null : priceNum,
                     isHasVariant,
-                    productVariants: isHasVariant ? productVariants : [],
+                    productVariants: isHasVariant ? validVariants : [],
                     modifierOptionIds: !isHasVariant ? modifierOptionIds : undefined,
                     productImages,
                 }
@@ -416,16 +546,25 @@ export default function ProductsManagement() {
         }
     }
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) return
-
+    const executeConfirmAction = async () => {
+        if (!confirmAction) return
+        setConfirmLoading(true)
         try {
-            await deleteSupplierProductApi(id)
-            toast({
-                title: "Thành công",
-                description: "Xóa sản phẩm thành công",
-                variant: "success",
-            })
+            if (confirmAction.type === 'delete') {
+                await deleteSupplierProductApi(confirmAction.id)
+                toast({
+                    title: "Thành công",
+                    description: "Xóa sản phẩm thành công",
+                    variant: "success",
+                })
+            } else {
+                await restoreSupplierProductApi(confirmAction.id)
+                toast({
+                    title: "Thành công",
+                    description: "Mở lại sản phẩm thành công",
+                    variant: "success",
+                })
+            }
             fetchProducts()
         } catch (err: unknown) {
             toast({
@@ -433,6 +572,9 @@ export default function ProductsManagement() {
                 description: extractError(err),
                 variant: "destructive",
             })
+        } finally {
+            setConfirmLoading(false)
+            setConfirmAction(null)
         }
     }
 
@@ -484,6 +626,13 @@ export default function ProductsManagement() {
                 <Button type="submit" variant="outline" className="w-full md:w-auto">
                     <Search className="mr-2 h-4 w-4" />
                     Tìm kiếm
+                </Button>
+                <Button
+                    variant={showDeleted ? "default" : "outline"}
+                    className="w-full md:w-auto"
+                    onClick={() => setShowDeleted(!showDeleted)}
+                >
+                    {showDeleted ? "Ẩn sản phẩm đã xóa" : "Hiện sản phẩm đã xóa"}
                 </Button>
             </form>
 
@@ -565,12 +714,29 @@ export default function ProductsManagement() {
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex gap-2 justify-end">
-                                                <Button size="sm" variant="outline" onClick={() => openEdit(p)}>
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
-                                                <Button size="sm" variant="outline" onClick={() => handleDelete(p.id)}>
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
+                                                {!showDeleted && (
+                                                    <>
+                                                        <Button size="sm" variant="outline" onClick={() => openEdit(p)}>
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => setConfirmAction({ id: p.id, name: p.name, type: 'delete' })}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </>
+                                                )}
+                                                {showDeleted && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => setConfirmAction({ id: p.id, name: p.name, type: 'restore' })}
+                                                    >
+                                                        <RotateCcw className="h-4 w-4" />
+                                                    </Button>
+                                                )}
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -735,11 +901,8 @@ export default function ProductsManagement() {
                                         checked={isHasVariant}
                                         onCheckedChange={(checked) => {
                                             setIsHasVariant(checked)
-                                            // Tự động thêm 1 biến thể mặc định khi bật switch
-                                            if (checked && productVariants.length === 0) {
-                                                setProductVariants([{ name: "", price: 0 }])
-                                            } else if (!checked) {
-                                                // Xóa tất cả biến thể khi tắt switch
+                                            // Chỉ xóa tất cả biến thể khi tắt switch, không tạo variant rỗng
+                                            if (!checked) {
                                                 setProductVariants([])
                                             }
                                         }}
@@ -806,46 +969,74 @@ export default function ProductsManagement() {
                                                         <X className="h-4 w-4" />
                                                     </Button>
                                                 </div>
-                                                {/* Name-based selection for modifier options per variant */}
+                                                {/* Modifier options for variant */}
                                                 <div className="grid gap-2">
-                                                    <Label>Tuỳ chọn cho biến thể {index + 1}</Label>
-                                                    {modifierLoading ? (
-                                                        <div className="p-2 text-sm text-muted-foreground flex items-center gap-2">
-                                                            <Loader2 className="h-4 w-4 animate-spin" /> Đang tải tuỳ chọn...
-                                                        </div>
-                                                    ) : (
-                                                        <div className="space-y-3">
-                                                            {modifierGroups.map((g) => (
-                                                                <div key={g.id} className="border rounded p-2">
-                                                                    <p className="text-sm font-medium">{g.name}</p>
-                                                                    <div className="flex flex-wrap gap-2 mt-2">
-                                                                        {(groupOptionsMap[g.id!] ?? []).map((opt) => {
-                                                                            const ids = variant.modifierOptionIds ?? []
-                                                                            const checked = ids.includes(opt.id!)
-                                                                            return (
-                                                                                <label key={opt.id} className="flex items-center gap-2 border rounded px-2 py-1 text-sm">
-                                                                                    <input
-                                                                                        type="checkbox"
-                                                                                        checked={checked}
-                                                                                        onChange={(e) => {
-                                                                                            const id = opt.id!
-                                                                                            const next = e.target.checked
-                                                                                                ? [...ids, id]
-                                                                                                : ids.filter((x) => x !== id)
-                                                                                            updateVariantModifierIds(index, next)
-                                                                                        }}
-                                                                                    />
-                                                                                    <span>{opt.name}</span>
-                                                                                </label>
-                                                                            )
-                                                                        })}
-                                                                        {(groupOptionsMap[g.id!] ?? []).length === 0 && (
-                                                                            <p className="text-xs text-muted-foreground">Nhóm chưa có tuỳ chọn</p>
-                                                                        )}
-                                                                    </div>
+                                                    {variant.id ? (
+                                                        // Existing variant: show selected options as badges (readonly)
+                                                        <>
+                                                            <Label>Tuỳ chọn đã chọn (Chỉ xem)</Label>
+                                                            {variantModifierDetails[variant.id] && variantModifierDetails[variant.id].length > 0 ? (
+                                                                <div className="space-y-2">
+                                                                    {variantModifierDetails[variant.id].map((group: any) => (
+                                                                        <div key={group.id} className="border rounded p-2 bg-muted/20">
+                                                                            <p className="text-sm font-medium mb-2">{group.name}</p>
+                                                                            <div className="flex flex-wrap gap-2">
+                                                                                {Array.isArray(group.modifierOptions) && group.modifierOptions.map((opt: any) => (
+                                                                                    <Badge key={opt.id} variant="secondary" className="text-xs">
+                                                                                        {opt.name}
+                                                                                    </Badge>
+                                                                                ))}
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
                                                                 </div>
-                                                            ))}
-                                                        </div>
+                                                            ) : (
+                                                                <p className="text-sm text-muted-foreground">Không có tuỳ chọn nào</p>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        // New variant: allow selection
+                                                        <>
+                                                            <Label>Tuỳ chọn cho biến thể {index + 1}</Label>
+                                                            {modifierLoading ? (
+                                                                <div className="p-2 text-sm text-muted-foreground flex items-center gap-2">
+                                                                    <Loader2 className="h-4 w-4 animate-spin" /> Đang tải tuỳ chọn...
+                                                                </div>
+                                                            ) : (
+                                                                <div className="space-y-3">
+                                                                    {modifierGroups.map((g) => (
+                                                                        <div key={g.id} className="border rounded p-2">
+                                                                            <p className="text-sm font-medium">{g.name}</p>
+                                                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                                                {(groupOptionsMap[g.id!] ?? []).map((opt) => {
+                                                                                    const ids = variant.modifierOptionIds ?? []
+                                                                                    const checked = ids.includes(opt.id!)
+                                                                                    return (
+                                                                                        <label key={opt.id} className="flex items-center gap-2 border rounded px-2 py-1 text-sm cursor-pointer hover:bg-muted/50">
+                                                                                            <input
+                                                                                                type="checkbox"
+                                                                                                checked={checked}
+                                                                                                onChange={(e) => {
+                                                                                                    const id = opt.id!
+                                                                                                    const next = e.target.checked
+                                                                                                        ? [...ids, id]
+                                                                                                        : ids.filter((x) => x !== id)
+                                                                                                    updateVariantModifierIds(index, next)
+                                                                                                }}
+                                                                                            />
+                                                                                            <span>{opt.name}</span>
+                                                                                        </label>
+                                                                                    )
+                                                                                })}
+                                                                                {(groupOptionsMap[g.id!] ?? []).length === 0 && (
+                                                                                    <p className="text-xs text-muted-foreground">Nhóm chưa có tuỳ chọn</p>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </>
                                                     )}
                                                 </div>
                                             </div>
@@ -921,17 +1112,18 @@ export default function ProductsManagement() {
                                 )}
                             </Button>
                         </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
+                    </form >
+                </DialogContent >
+            </Dialog >
 
             {/* Image preview dialog */}
-            <Dialog
+            < Dialog
                 open={previewOpen}
                 onOpenChange={(open) => {
                     if (!open) setPreviewUrl(null)
                     setPreviewOpen(open)
-                }}
+                }
+                }
             >
                 <DialogContent className="max-w-3xl">
                     <DialogHeader>
@@ -950,7 +1142,35 @@ export default function ProductsManagement() {
                         </Button>
                     </DialogFooter>
                 </DialogContent>
-            </Dialog>
-        </div>
+            </Dialog >
+
+            {/* Confirm delete/restore */}
+            < AlertDialog open={!!confirmAction} onOpenChange={(open) => !open && !confirmLoading && setConfirmAction(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            {confirmAction?.type === 'delete' ? 'Xóa sản phẩm?' : 'Mở lại sản phẩm?'}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {confirmAction?.type === 'delete'
+                                ? `Bạn có chắc chắn muốn xóa sản phẩm "${confirmAction?.name || ''}"?`
+                                : `Bạn có chắc chắn muốn mở lại sản phẩm "${confirmAction?.name || ''}"?`}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={confirmLoading}>Hủy</AlertDialogCancel>
+                        <AlertDialogAction onClick={executeConfirmAction} disabled={confirmLoading}>
+                            {confirmLoading ? (
+                                <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Đang xử lý...</span>
+                            ) : confirmAction?.type === 'delete' ? (
+                                'Xóa'
+                            ) : (
+                                'Mở lại'
+                            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog >
+        </div >
     )
 }

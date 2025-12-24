@@ -22,6 +22,7 @@ import BoatyardComplaintsPage from '@/page/repair-shop/complaints/complaints';
 import PublicProductsPage from '@/page/products/products';
 import ProductDetailPage from '@/page/products/productDetail';
 import PublicSuppliersPage from '@/page/suppliers/suppliers';
+import SupplierDetailPage from '@/page/suppliers/supplier-detail';
 import SupplierDashboardPage from '@/page/supplier/dashboard/dasboard';
 import SupplierReviewsPage from '@/page/supplier/reviews/reviews';
 import SupplierModifierGroupsPage from '@/page/supplier/modifier-groups/modifier-groups';
@@ -82,6 +83,10 @@ const router = createBrowserRouter([
     {
         path: '/suppliers',
         element: <PublicSuppliersPage />,
+    },
+    {
+        path: '/suppliers/:id',
+        element: <SupplierDetailPage />,
     },
     {
         path: '/supplier/dashboard',

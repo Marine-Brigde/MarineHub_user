@@ -11,11 +11,17 @@ export interface ChatProduct {
     IsHasVariant: boolean
 }
 
-export interface ChatBoatyard {
-    [key: string]: any
+export interface ChatSupplier {
+    Id: string
+    Name: string
+    Longitude: string
+    Latitude: string
+    BankName?: string | null
+    BankNo?: string | null
+    distance_km: number
 }
 
-export interface ChatSupplier {
+export interface ChatBoatyard {
     [key: string]: any
 }
 
@@ -29,5 +35,7 @@ export interface ChatResponse {
 
 export interface ChatRequest {
     prompt: string
+    longitude: number
+    latitude: number
 }
 

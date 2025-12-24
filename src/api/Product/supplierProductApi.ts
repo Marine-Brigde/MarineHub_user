@@ -22,7 +22,9 @@ export const getSupplierProductsApi = async (params?: GetProductsParams) => {
     if (params?.name) {
         queryParams.name = params.name
     }
-
+    if (params?.isActive !== undefined) {
+        queryParams.isActive = params.isActive
+    }
     const response = await axiosClient.get<BaseResponse<ProductListResponse>>(
         '/v1/products',
         { params: queryParams }
@@ -150,9 +152,21 @@ export const updateSupplierProductApi = async (id: string, data: UpdateProductRe
     return response.data
 }
 
-// 📦 Xóa Product (DELETE /api/v1/products/{id})
+// �️ Soft Delete Product (PATCH /api/v1/products/{id} - set IsActive = false)
 export const deleteSupplierProductApi = async (id: string) => {
-    const response = await axiosClient.delete<BaseResponse<string>>(`/v1/products/${id}`)
+    const formData = new FormData()
+    formData.append('IsActive', 'false')
+    const response = await axiosClient.patch<BaseResponse<string>>(`/v1/products/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    })
     return response.data
 }
-
+// ♾️ Restore Product (PATCH /api/v1/products/{id} - set IsActive = true)
+export const restoreSupplierProductApi = async (id: string) => {
+    const formData = new FormData()
+    formData.append('IsActive', 'true')
+    const response = await axiosClient.patch<BaseResponse<string>>(`/v1/products/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    return response.data
+}

@@ -10,6 +10,7 @@ export interface Product {
     supplierId: string
     supplierName: string
     imageUrl: string
+    isActive?: boolean
     productImages?: ProductImage[]
     productVariants?: ProductVariant[]
     createdDate: string
@@ -49,6 +50,7 @@ export interface ProductVariant {
     name: string
     price: number
     modifierGroups?: ProductModifierGroup[]
+    modifierOptionIds?: string[]
 }
 
 export interface ProductModifierGroup {

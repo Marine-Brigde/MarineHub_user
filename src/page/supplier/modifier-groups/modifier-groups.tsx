@@ -314,7 +314,7 @@ export default function ModifierGroupsManagement() {
                         </BreadcrumbItem>
                         <BreadcrumbSeparator />
                         <BreadcrumbItem>
-                            <BreadcrumbPage>Quản lý Modifier Groups</BreadcrumbPage>
+                            <BreadcrumbPage>Quản lý Nhóm Tùy Chọn</BreadcrumbPage>
                         </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>
@@ -322,7 +322,7 @@ export default function ModifierGroupsManagement() {
 
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-semibold">Quản lý Modifier Groups</h1>
+                    <h1 className="text-3xl font-semibold">Quản lý Nhóm Tùy Chọn</h1>
                     <p className="text-sm text-muted-foreground">Tạo và quản lý nhóm tùy chọn cho sản phẩm</p>
                 </div>
                 <Button onClick={openCreateGroup} className="w-full md:w-auto">
@@ -349,7 +349,7 @@ export default function ModifierGroupsManagement() {
 
             <Card className="border-border/50">
                 <CardHeader className="border-b border-border/50 bg-muted/30">
-                    <CardTitle>Danh sách Modifier Groups</CardTitle>
+                    <CardTitle>Danh sách Nhóm Tùy Chọn</CardTitle>
                     <CardDescription>Tổng {total} nhóm</CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">

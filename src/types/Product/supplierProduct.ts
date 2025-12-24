@@ -1,6 +1,7 @@
 // src/types/Product/supplierProduct.ts
 
 export interface ProductVariant {
+    id?: string
     name: string
     price: number
     modifierOptionIds?: string[]
@@ -16,6 +17,7 @@ export interface Product {
     supplierId: string
     supplierName: string
     imageUrl: string
+    isActive: boolean
     createdDate: string
     lastModifiedDate: string
 }
@@ -51,6 +53,7 @@ export interface UpdateProductRequest {
     categoryId?: string
     price?: number | null
     isHasVariant?: boolean
+    isActive?: boolean
     productVariants?: ProductVariant[]
     productImages?: File[]
     modifierOptionIds?: string[]
@@ -62,5 +65,6 @@ export interface GetProductsParams {
     sortBy?: string
     isAsc?: boolean
     name?: string
+    isActive?: boolean
 }
 

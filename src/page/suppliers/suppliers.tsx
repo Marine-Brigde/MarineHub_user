@@ -55,7 +55,7 @@ export default function SuppliersPage() {
         try {
             setIsLoading(true)
             setError("")
-            
+
             const response: BaseResponse<SupplierListResponse> = await getSuppliersApi({
                 page,
                 size,
@@ -409,10 +409,10 @@ export default function SuppliersPage() {
                                             <Button
                                                 size="sm"
                                                 className="w-full"
-                                                onClick={() => navigate(`/products?supplierId=${supplier.id}`)}
+                                                onClick={() => navigate(`/suppliers/${supplier.id}`, { state: { supplier } })}
                                             >
                                                 <Building2 className="mr-2 h-4 w-4" />
-                                                Xem sản phẩm
+                                                Xem chi tiết
                                             </Button>
                                         </CardContent>
                                     </Card>
@@ -545,10 +545,10 @@ export default function SuppliersPage() {
                                                         </Dialog>
                                                         <Button
                                                             size="sm"
-                                                            onClick={() => navigate(`/products?supplierId=${supplier.id}`)}
+                                                            onClick={() => navigate(`/suppliers/${supplier.id}`, { state: { supplier } })}
                                                         >
                                                             <Building2 className="mr-2 h-4 w-4" />
-                                                            Xem sản phẩm
+                                                            Xem chi tiết
                                                         </Button>
                                                     </div>
                                                 </div>

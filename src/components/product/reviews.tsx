@@ -80,7 +80,7 @@ export default function ProductReviews({ productId, productBoatyardId, productAc
             })
             .catch((err) => {
                 console.error("load reviews / boatyard", err)
-                setError("Không thể tải đánh giá")
+                setError("Không thể tải đánh giá vì chưa mua sản phẩm này")
             })
             .finally(() => setLoading(false))
     }, [productId, productBoatyardId, productAccountId])

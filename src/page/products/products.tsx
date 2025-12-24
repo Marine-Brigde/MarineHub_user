@@ -56,9 +56,12 @@ export default function ProductsPage() {
             })
 
             if (response.status === 200 && response.data) {
-                setProducts(response.data.items || [])
+                const items = response.data.items || []
+                // Frontend-only filter: show only active products (treat undefined as active)
+                const activeItems = items.filter((p) => p.isActive !== false)
+                setProducts(activeItems)
                 setTotalPages(response.data.totalPages || 0)
-                setTotal(response.data.total || 0)
+                setTotal(response.data.total || activeItems.length)
             } else {
                 setError(response.message || "Không thể tải danh sách sản phẩm")
             }

@@ -1,8 +1,12 @@
 // src/types/boatyard.ts
 export interface DockSlot {
+    id?: string;
     name: string;
     assignedFrom: string; // ISO date string
     assignedUntil: string; // ISO date string
+    isActive?: boolean;
+    isExpired?: boolean;
+    createdDate?: string | null;
 }
 
 export interface BoatyardRequest {
@@ -50,4 +54,5 @@ export interface ApiResponse<T> {
     status: number;
     message: string;
     data: T;
+    isSuccess?: boolean; // optional flag from backend (some endpoints may omit)
 }

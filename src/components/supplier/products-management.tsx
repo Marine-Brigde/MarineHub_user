@@ -43,6 +43,7 @@ import { useToast } from "@/hooks/use-toast"
 
 import { getSupplierProductsApi, createSupplierProductApi, updateSupplierProductApi, deleteSupplierProductApi, restoreSupplierProductApi } from "@/api/Product/supplierProductApi"
 import { getProductByIdApi, createProductVariantApi, updateProductVariantApi, deleteProductVariantApi } from '@/api/Product/productApi'
+import { uploadProductImageApi, deleteProductImageApi } from "@/api/Product/productImageApi"
 import { getCategoriesApi } from "@/api/Category/categoryApi"
 import type { Product, CreateProductRequest, UpdateProductRequest, ProductVariant } from "@/types/Product/supplierProduct"
 import type { Category } from "@/types/Category/category"
@@ -116,6 +117,7 @@ export default function ProductsManagement() {
     const [modifierOptionIds, setModifierOptionIds] = useState<string[]>([])
     const [productImages, setProductImages] = useState<File[]>([])
     const [imagePreviews, setImagePreviews] = useState<string[]>([])
+    const [imageIds, setImageIds] = useState<string[]>([]) // Track IDs of existing images for deletion
 
     // Modifier groups + options for name-based selection
     const [modifierGroups, setModifierGroups] = useState<ModifierGroup[]>([])
@@ -235,6 +237,7 @@ export default function ProductsManagement() {
         setProductImages([])
         cleanupImagePreviews()
         setImagePreviews([])
+        setImageIds([])
         setFormError("")
         setShowDialog(true)
     }
@@ -247,14 +250,23 @@ export default function ProductsManagement() {
         setIsHasVariant(p.isHasVariant)
         setProductImages([])
         cleanupImagePreviews()
-        setImagePreviews(p.imageUrl ? [p.imageUrl] : [])
+        setImagePreviews([])
+        setImageIds([])
         setFormError("")
 
-        // Fetch product detail to populate price and variants
+        // Fetch product detail to populate price, variants, and images
         try {
             const res = await getProductByIdApi(p.id)
             const detail = (res as any)?.data
             if (detail) {
+                // Populate product images with IDs
+                if (Array.isArray(detail.productImages) && detail.productImages.length > 0) {
+                    const imagePrevs = detail.productImages.map((img: any) => img.imageUrl)
+                    const imageIdList = detail.productImages.map((img: any) => img.id)
+                    setImagePreviews(imagePrevs)
+                    setImageIds(imageIdList)
+                }
+
                 // If product has variants, map them to supplier ProductVariant type
                 if (Array.isArray(detail.productVariants) && detail.productVariants.length > 0 && p.isHasVariant) {
                     // Filter to only include active variants (isActive === true)
@@ -319,7 +331,7 @@ export default function ProductsManagement() {
         })
     }
 
-    const onSelectImages = (files: FileList | null) => {
+    const onSelectImages = async (files: FileList | null) => {
         if (!files || files.length === 0) return
 
         const newFiles: File[] = []
@@ -332,10 +344,67 @@ export default function ProductsManagement() {
 
         setProductImages((prev) => [...prev, ...newFiles])
         setImagePreviews((prev) => [...prev, ...newPreviews])
+
+        // If editing, upload images immediately using the API
+        if (editProduct) {
+            try {
+                const uploadResults = await Promise.all(
+                    newFiles.map((image, index) =>
+                        uploadProductImageApi({
+                            productId: editProduct.id,
+                            image,
+                            sortOrder: imagePreviews.length + index,
+                        })
+                    )
+                )
+
+                // Store the uploaded image IDs for future deletion
+                const uploadedIds = uploadResults.map((result: any) => result.data?.id).filter(Boolean)
+                setImageIds((prev) => [...prev, ...uploadedIds])
+
+                toast({
+                    title: "Thành công",
+                    description: `Đã tải ${uploadedIds.length} ảnh lên`,
+                    variant: "success",
+                })
+            } catch (err) {
+                console.error('Error uploading images:', err)
+                toast({
+                    title: "Lỗi",
+                    description: extractError(err),
+                    variant: "destructive",
+                })
+                // Remove the previews that failed to upload
+                setImagePreviews((prev) => prev.slice(0, prev.length - newPreviews.length))
+                setProductImages((prev) => prev.slice(0, prev.length - newFiles.length))
+            }
+        }
     }
 
-    const removeImage = (index: number) => {
+    const removeImage = async (index: number) => {
         const preview = imagePreviews[index]
+        const imageId = imageIds[index]
+
+        // If editing and this is an existing image, call delete API
+        if (editProduct && imageId) {
+            try {
+                await deleteProductImageApi(imageId)
+                toast({
+                    title: "Thành công",
+                    description: "Xóa ảnh thành công",
+                    variant: "success",
+                })
+            } catch (err) {
+                toast({
+                    title: "Lỗi",
+                    description: extractError(err),
+                    variant: "destructive",
+                })
+                return
+            }
+        }
+
+        // Remove from UI
         if (preview.startsWith('blob:')) {
             try {
                 URL.revokeObjectURL(preview)
@@ -345,6 +414,7 @@ export default function ProductsManagement() {
         }
         setImagePreviews((prev) => prev.filter((_, i) => i !== index))
         setProductImages((prev) => prev.filter((_, i) => i !== index))
+        setImageIds((prev) => prev.filter((_, i) => i !== index))
     }
 
     const addVariant = () => {
@@ -477,7 +547,7 @@ export default function ProductsManagement() {
                     isHasVariant,
                     // Variants are handled via dedicated APIs below
                     modifierOptionIds: !isHasVariant ? modifierOptionIds : undefined,
-                    productImages: productImages.length > 0 ? productImages : undefined,
+                    productImages: undefined, // Images are handled via uploadProductImageApi
                 }
 
                 await updateSupplierProductApi(editProduct.id, payload)

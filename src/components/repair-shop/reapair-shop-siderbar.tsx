@@ -1,5 +1,5 @@
 import { useLocation, } from "react-router-dom"
-import { Anchor, BarChart3, Wrench, Calendar, MapPin, LogOut, User, ShoppingCart, Home } from "lucide-react"
+import { Anchor, BarChart3, Wrench, Calendar, MapPin, LogOut, User, ShoppingCart, Home, TrendingUp } from "lucide-react"
 
 import {
     Sidebar,
@@ -51,6 +51,11 @@ const menuItems = [
         title: "Đơn hàng",
         url: "/repair-shop/orders",
         icon: ShoppingCart,
+    },
+    {
+        title: "Lịch sử giao dịch",
+        url: "/repair-shop/transactions",
+        icon: TrendingUp,
     },
     // {
     //     title: "Báo cáo tiến độ",

@@ -31,12 +31,20 @@ import PaymentSuccessPage from '@/page/payment/success';
 import PaymentFailedPage from '@/page/payment/failed';
 import RepairShopBookingsPage from '@/page/repair-shop/bookings/bookings';
 import RepairShopBookingDetailPage from '@/page/repair-shop/bookings/bookingDetail';
+import TransactionsList from '@/components/transaction/transactions-list';
+import OrdersListPage from '@/page/supplier/orders-list/orders-list';
+import OrderDetailPage from '@/page/supplier/order-detail/order-detail';
+import { TransactionsDashboard } from '@/components/supplier/transactions-dashboard';
 
 
 const router = createBrowserRouter([
     {
         path: '/',
-        element: <HomePage />,
+        element: (
+            <ProtectedRoute allowedRole="Boatyard">
+                <HomePage />
+            </ProtectedRoute>
+        ),
     },
     {
         path: '/products',
@@ -74,7 +82,7 @@ const router = createBrowserRouter([
             { path: 'orders', element: <RepairShopOrdersPage /> },
             { path: 'bookings', element: <RepairShopBookingsPage /> },
             { path: 'bookings/:id', element: <RepairShopBookingDetailPage /> },
-
+            { path: 'transactions', element: <TransactionsList /> },
             { path: 'profile', element: <BoatyardProfilePage /> },
             { path: 'complaints', element: <BoatyardComplaintsPage /> },
             { path: 'success', element: <PaymentSuccessPage /> },
@@ -168,17 +176,43 @@ const router = createBrowserRouter([
                 </SupplierLayout>
             </ProtectedRoute>
         )
-    }
-    ,
+    },
     {
-        path: '/success',
+        path: '/supplier/transactions',
+        element: (
+            <ProtectedRoute allowedRole="Supplier">
+                <SupplierLayout>
+                    <TransactionsDashboard />
+                </SupplierLayout>
+            </ProtectedRoute>
+        )
+    },
+    {        path: '/supplier/orders-list/:transactionId',
+        element: (
+            <ProtectedRoute allowedRole="Supplier">
+                <SupplierLayout>
+                    <OrdersListPage />
+                </SupplierLayout>
+            </ProtectedRoute>
+        )
+    },
+    {
+        path: '/supplier/order-detail/:orderId',
+        element: (
+            <ProtectedRoute allowedRole="Supplier">
+                <SupplierLayout>
+                    <OrderDetailPage />
+                </SupplierLayout>
+            </ProtectedRoute>
+        )
+    },
+    {        path: '/success',
         element: <PaymentSuccessPage />,
     },
     {
         path: '/failed',
         element: <PaymentFailedPage />,
-    }
-
+    },
 ]);
 
 export default router;

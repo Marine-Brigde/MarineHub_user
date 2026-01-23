@@ -15,7 +15,7 @@ const shortText = (s?: string, n = 70) => (s && s.length > n ? `${s.slice(0, n)}
 
 export default function HomePage() {
     const navigate = useNavigate()
-    const [isAuthenticated, setIsAuthenticated] = useState(false)
+    const [isInitialized, setIsInitialized] = useState(false)
     const [products, setProducts] = useState<Product[]>([])
     const [suppliers, setSuppliers] = useState<Supplier[]>([])
     const [loadingProducts, setLoadingProducts] = useState(false)
@@ -23,15 +23,15 @@ export default function HomePage() {
     const [slide, setSlide] = useState(0)
     const [autoPlay, setAutoPlay] = useState(true)
 
-    // Simple auth check via localStorage token
+    // Check auth on mount
     useEffect(() => {
         const token = localStorage.getItem("accessToken")
-        setIsAuthenticated(!!token)
+        setIsInitialized(!!token) // isInitialized is true only if there's a token
     }, [])
 
-    // Fetch products & suppliers when logged in
+    // Fetch products & suppliers when initialized
     useEffect(() => {
-        if (!isAuthenticated) return
+        if (!isInitialized) return
 
         const fetchProducts = async () => {
             try {
@@ -68,7 +68,7 @@ export default function HomePage() {
 
         fetchProducts()
         fetchSuppliers()
-    }, [isAuthenticated])
+    }, [isInitialized])
 
     // Carousel setup
     const slides = useMemo(
@@ -249,7 +249,7 @@ export default function HomePage() {
             </section>
 
             {/* Logged-in highlights */}
-            {isAuthenticated && (
+            {isInitialized && (
                 <section className="py-16 px-4 bg-background">
                     <div className="container mx-auto max-w-6xl space-y-12">
                         <div className="flex items-center justify-between gap-3">
@@ -331,7 +331,7 @@ export default function HomePage() {
             )}
 
             {/* Become Supplier Section */}
-            {!isAuthenticated && (
+            {!isInitialized && (
                 <section className="py-20 px-4 bg-gradient-to-br from-primary/5 via-background to-accent/5">
                     <div className="container mx-auto max-w-6xl">
                         <div className="text-center mb-16">
@@ -431,7 +431,7 @@ export default function HomePage() {
             )}
 
             {/* CTA Section */}
-            {!isAuthenticated && (
+            {!isInitialized && (
                 <section className="py-20 px-4">
                     <div className="container mx-auto text-center max-w-3xl">
                         <h3 className="text-3xl font-bold text-foreground mb-6">Sẵn sàng bắt đầu?</h3>

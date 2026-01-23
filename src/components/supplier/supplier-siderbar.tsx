@@ -1,6 +1,6 @@
 "use client"
 
-import { Anchor, BarChart3, Package, ShoppingCart, MessageSquare, LogOut, User, Settings2 } from "lucide-react"
+import { Anchor, BarChart3, Package, ShoppingCart, MessageSquare, LogOut, User, Settings2, TrendingUp } from "lucide-react"
 import { useLocation } from "react-router-dom"
 
 import {
@@ -46,6 +46,11 @@ const menuItems = [
         title: "Đánh giá & Phản hồi",
         url: "/supplier/reviews",
         icon: MessageSquare,
+    },
+    {
+        title: "Lịch sử giao dịch",
+        url: "/supplier/transactions",
+        icon: TrendingUp,
     },
     // {
     //     title: "Khiếu nại từ tàu",

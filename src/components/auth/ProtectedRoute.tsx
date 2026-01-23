@@ -21,9 +21,14 @@ export function ProtectedRoute({ children, allowedRole }: ProtectedRouteProps) {
         return <Navigate to="/login" replace />
     }
 
-    // Nếu role không khớp, redirect về trang chủ
+    // Nếu role không khớp
     if (userRole !== allowedRole) {
-        return <Navigate to="/" replace />
+        // Nếu là Supplier, redirect về supplier dashboard
+        if (userRole === "Supplier") {
+            return <Navigate to="/supplier/dashboard" replace />
+        }
+        // Nếu là Boatyard nhưng không phải, redirect về login
+        return <Navigate to="/login" replace />
     }
 
     // Nếu đã đăng nhập và role đúng, render children

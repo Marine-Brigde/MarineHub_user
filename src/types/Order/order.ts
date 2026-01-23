@@ -62,6 +62,7 @@ export interface OrderListResponse {
 
 export interface GetOrdersParams {
     shipId?: string
+    supplierId?: string
     status?: string
     startDate?: string
     endDate?: string

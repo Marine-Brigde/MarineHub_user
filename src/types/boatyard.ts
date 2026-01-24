@@ -38,6 +38,7 @@ export interface BoatyardItem {
     address: string;
     phoneNumber: string;
     avatarUrl: string;
+    commissionFeePercent: number;
     createdDate: string;
     lastModifiedDate: string;
 }

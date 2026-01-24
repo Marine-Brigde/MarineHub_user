@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Separator } from "@/components/ui/separator"
+
 import { User, Phone, Save, Loader2, CheckCircle2, Camera, Package } from "lucide-react"
 import { getProfileApi, updateProfileApi } from "@/api/authApi"
+import { getSupplierDetailApi } from "@/api/Supplier/supplierApi"
 import type { ProfileData } from "@/models/Auth"
 
 export default function SupplierProfilePage() {
@@ -19,7 +20,7 @@ export default function SupplierProfilePage() {
     const [success, setSuccess] = useState("")
     const [isEditing, setIsEditing] = useState(false)
 
-    const [profileData, setProfileData] = useState<ProfileData & { email?: string; username?: string; name?: string }>({
+    const [profileData, setProfileData] = useState<ProfileData & { email?: string; username?: string; name?: string; commissionFeePercent?: number }>({
         id: "",
         fullName: "",
         address: "",
@@ -28,6 +29,7 @@ export default function SupplierProfilePage() {
         email: "",
         username: "",
         name: "",
+        commissionFeePercent: 0,
     })
 
     const [formData, setFormData] = useState({
@@ -45,26 +47,33 @@ export default function SupplierProfilePage() {
         try {
             setIsLoading(true)
             setError("")
-            const response = await getProfileApi()
-            
-            if (response.status === 200 && response.data) {
+            const [profileResponse, supplierResponse] = await Promise.all([
+                getProfileApi(),
+                getSupplierDetailApi()
+            ])
+
+            if (profileResponse.status === 200 && profileResponse.data) {
                 // Lấy thông tin từ localStorage cho các field không có trong API response
                 const email = localStorage.getItem("email") || ""
                 const username = localStorage.getItem("username") || ""
-                
+
+                // Lấy commissionFeePercent từ supplier detail API
+                const commissionFeePercent = supplierResponse.status === 200 ? supplierResponse.data?.commissionFeePercent || 0 : 0
+
                 setProfileData({
-                    ...response.data,
+                    ...profileResponse.data,
                     email,
                     username,
                     name: "", // Không có trong API response
+                    commissionFeePercent,
                 })
                 setFormData({
-                    fullName: response.data.fullName || "",
-                    phoneNumber: response.data.phoneNumber || "",
+                    fullName: profileResponse.data.fullName || "",
+                    phoneNumber: profileResponse.data.phoneNumber || "",
                     avatar: null,
                 })
             } else {
-                setError(response.message || "Không thể tải thông tin profile")
+                setError(profileResponse.message || "Không thể tải thông tin profile")
             }
         } catch (err: any) {
             console.error("Error loading profile:", err)
@@ -197,158 +206,166 @@ export default function SupplierProfilePage() {
                 </Alert>
             )}
 
-            <div className="grid gap-6 md:grid-cols-3">
-                {/* Left Column - Avatar & Basic Info */}
-                <div className="space-y-6">
-                    {/* Avatar Card */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Ảnh đại diện</CardTitle>
-                            <CardDescription>Ảnh profile của bạn</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex flex-col items-center space-y-4">
-                            <div className="relative">
-                                <Avatar className="h-32 w-32 border-4 border-primary/20">
-                                    <AvatarImage 
-                                        src={formData.avatar ? URL.createObjectURL(formData.avatar) : profileData.avatarUrl} 
-                                        alt={profileData.fullName}
-                                    />
-                                    <AvatarFallback className="text-2xl">
-                                        {profileData.fullName?.charAt(0)?.toUpperCase() || "N"}
-                                    </AvatarFallback>
-                                </Avatar>
-                                {isEditing && (
-                                    <label
-                                        htmlFor="avatar-upload"
-                                        className="absolute bottom-0 right-0 p-2 bg-primary text-primary-foreground rounded-full cursor-pointer hover:bg-primary/90 transition-colors shadow-lg"
-                                    >
-                                        <Camera className="h-4 w-4" />
-                                        <input
-                                            id="avatar-upload"
-                                            type="file"
-                                            accept="image/*"
-                                            className="hidden"
-                                            onChange={(e) => {
-                                                const file = e.target.files?.[0]
-                                                if (file) {
-                                                    setFormData((prev) => ({ ...prev, avatar: file }))
-                                                }
-                                            }}
-                                        />
-                                    </label>
-                                )}
-                            </div>
+            {/* Avatar & Commission Section */}
+            <div className="grid gap-6 md:grid-cols-2">
+                {/* Avatar Card */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">Ảnh đại diện</CardTitle>
+                        <CardDescription>Ảnh profile của bạn</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col items-center space-y-4">
+                        <div className="relative">
+                            <Avatar className="h-32 w-32 border-4 border-primary/20">
+                                <AvatarImage
+                                    src={formData.avatar ? URL.createObjectURL(formData.avatar) : profileData.avatarUrl}
+                                    alt={profileData.fullName}
+                                />
+                                <AvatarFallback className="text-2xl">
+                                    {profileData.fullName?.charAt(0)?.toUpperCase() || "N"}
+                                </AvatarFallback>
+                            </Avatar>
                             {isEditing && (
-                                <p className="text-xs text-center text-muted-foreground">
-                                    Click vào icon camera để thay đổi ảnh
-                                </p>
+                                <label
+                                    htmlFor="avatar-upload"
+                                    className="absolute bottom-0 right-0 p-2 bg-primary text-primary-foreground rounded-full cursor-pointer hover:bg-primary/90 transition-colors shadow-lg"
+                                >
+                                    <Camera className="h-4 w-4" />
+                                    <input
+                                        id="avatar-upload"
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0]
+                                            if (file) {
+                                                setFormData((prev) => ({ ...prev, avatar: file }))
+                                            }
+                                        }}
+                                    />
+                                </label>
                             )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Account Info Card */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Thông tin tài khoản</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            <div>
-                                <Label className="text-xs text-muted-foreground">Email</Label>
-                                <p className="text-sm font-medium">{profileData.email}</p>
-                            </div>
-                            <Separator />
-                            <div>
-                                <Label className="text-xs text-muted-foreground">Tên đăng nhập</Label>
-                                <p className="text-sm font-medium">{profileData.username}</p>
-                            </div>
-                            <Separator />
-                            <div>
-                                <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                                    <Package className="h-3 w-3" />
-                                    Tên công ty
-                                </Label>
-                                <p className="text-sm font-medium">{profileData.name || "Chưa cập nhật"}</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Right Column - Editable Fields */}
-                <div className="md:col-span-2 space-y-6">
-                    {/* Personal Information Card */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <User className="h-5 w-5 text-primary" />
-                                Thông tin cá nhân
-                            </CardTitle>
-                            <CardDescription>
-                                Cập nhật thông tin cá nhân của bạn
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {/* Full Name */}
-                            <div className="space-y-2">
-                                <Label htmlFor="fullName" className="flex items-center gap-2">
-                                    <User className="h-4 w-4 text-muted-foreground" />
-                                    Họ và tên <span className="text-destructive">*</span>
-                                </Label>
-                                {isEditing ? (
-                                    <Input
-                                        id="fullName"
-                                        placeholder="Nhập họ và tên đầy đủ"
-                                        value={formData.fullName}
-                                        onChange={(e) =>
-                                            setFormData((prev) => ({ ...prev, fullName: e.target.value }))
-                                        }
-                                        required
-                                    />
-                                ) : (
-                                    <p className="text-sm py-2 px-3 bg-muted rounded-md">
-                                        {profileData.fullName || "Chưa cập nhật"}
-                                    </p>
-                                )}
-                            </div>
-
-                            {/* Phone Number */}
-                            <div className="space-y-2">
-                                <Label htmlFor="phoneNumber" className="flex items-center gap-2">
-                                    <Phone className="h-4 w-4 text-muted-foreground" />
-                                    Số điện thoại <span className="text-destructive">*</span>
-                                </Label>
-                                {isEditing ? (
-                                    <Input
-                                        id="phoneNumber"
-                                        type="tel"
-                                        placeholder="0123456789"
-                                        value={formData.phoneNumber}
-                                        onChange={(e) =>
-                                            setFormData((prev) => ({ ...prev, phoneNumber: e.target.value }))
-                                        }
-                                        required
-                                    />
-                                ) : (
-                                    <p className="text-sm py-2 px-3 bg-muted rounded-md">
-                                        {profileData.phoneNumber || "Chưa cập nhật"}
-                                    </p>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Address Information (Read-only) */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Địa chỉ</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-muted-foreground">
-                                {profileData.address || "Chưa cập nhật địa chỉ"}
+                        </div>
+                        {isEditing && (
+                            <p className="text-xs text-center text-muted-foreground">
+                                Click vào icon camera để thay đổi ảnh
                             </p>
-                        </CardContent>
-                    </Card>
-                </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Commission Fee Card */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">Thông tin hoa hồng</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-center min-h-[200px]">
+                        <div className="text-center">
+                            <Label className="text-xs text-muted-foreground">Phí hoa hồng</Label>
+                            <p className="text-5xl font-bold text-primary mt-4">{profileData.commissionFeePercent}%</p>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
+
+            {/* Account Info Card */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Thông tin tài khoản</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid gap-4 md:grid-cols-3">
+                        <div>
+                            <Label className="text-xs text-muted-foreground">Email</Label>
+                            <p className="text-sm font-medium mt-1">{profileData.email}</p>
+                        </div>
+                        <div>
+                            <Label className="text-xs text-muted-foreground">Tên đăng nhập</Label>
+                            <p className="text-sm font-medium mt-1">{profileData.username}</p>
+                        </div>
+                        <div>
+                            <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Package className="h-3 w-3" />
+                                Tên công ty
+                            </Label>
+                            <p className="text-sm font-medium mt-1">{profileData.name || "Chưa cập nhật"}</p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Personal Information Card */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <User className="h-5 w-5 text-primary" />
+                        Thông tin cá nhân
+                    </CardTitle>
+                    <CardDescription>
+                        Cập nhật thông tin cá nhân của bạn
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {/* Full Name */}
+                    <div className="space-y-2">
+                        <Label htmlFor="fullName" className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            Họ và tên <span className="text-destructive">*</span>
+                        </Label>
+                        {isEditing ? (
+                            <Input
+                                id="fullName"
+                                placeholder="Nhập họ và tên đầy đủ"
+                                value={formData.fullName}
+                                onChange={(e) =>
+                                    setFormData((prev) => ({ ...prev, fullName: e.target.value }))
+                                }
+                                required
+                            />
+                        ) : (
+                            <p className="text-sm py-2 px-3 bg-muted rounded-md">
+                                {profileData.fullName || "Chưa cập nhật"}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Phone Number */}
+                    <div className="space-y-2">
+                        <Label htmlFor="phoneNumber" className="flex items-center gap-2">
+                            <Phone className="h-4 w-4 text-muted-foreground" />
+                            Số điện thoại <span className="text-destructive">*</span>
+                        </Label>
+                        {isEditing ? (
+                            <Input
+                                id="phoneNumber"
+                                type="tel"
+                                placeholder="0123456789"
+                                value={formData.phoneNumber}
+                                onChange={(e) =>
+                                    setFormData((prev) => ({ ...prev, phoneNumber: e.target.value }))
+                                }
+                                required
+                            />
+                        ) : (
+                            <p className="text-sm py-2 px-3 bg-muted rounded-md">
+                                {profileData.phoneNumber || "Chưa cập nhật"}
+                            </p>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Address Information (Read-only) */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Địa chỉ</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                        {profileData.address || "Chưa cập nhật địa chỉ"}
+                    </p>
+                </CardContent>
+            </Card>
         </div>
     )
 }

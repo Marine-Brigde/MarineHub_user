@@ -14,6 +14,7 @@ export interface Supplier {
     avatarUrl: string | null
     bankName?: string | null
     bankNo?: string | null
+    commissionFeePercent?: number
     createdDate: string
     lastModifiedDate: string | null
 }

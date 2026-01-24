@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -50,6 +50,22 @@ export default function OrdersListPage() {
     const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [showPreview, setShowPreview] = useState(false)
+
+    // Tính commission percent từ so sánh transaction amount và orders total
+    const commissionFeePercent = useMemo(() => {
+        if (!transaction || !orders.length) return 5
+
+        const totalOrdersAmount = orders.reduce((sum: number, order: any) => sum + (order.totalAmount || 0), 0)
+        const transactionAmount = transaction.amount || 0
+
+        if (totalOrdersAmount === 0) return 5
+
+        // Platform fee = Tổng tiền orders - Tiền supplier nhận
+        const platformFee = totalOrdersAmount - transactionAmount
+        const percent = (platformFee / totalOrdersAmount) * 100
+
+        return Math.max(0, Math.min(100, percent)) // Giới hạn từ 0-100%
+    }, [transaction, orders])
 
     useEffect(() => {
         const load = async () => {
@@ -267,7 +283,7 @@ export default function OrdersListPage() {
                             <DialogTitle>Xem hóa đơn</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4">
-                            <PrintInvoice orders={orders} ordersDetail={ordersDetail} transaction={transaction} />
+                            <PrintInvoice orders={orders} ordersDetail={ordersDetail} transaction={transaction} commissionFeePercent={commissionFeePercent} />
                             <div className="flex justify-end gap-2 sticky bottom-0 bg-white pt-4 border-t">
                                 <Button variant="outline" onClick={() => setShowPreview(false)}>
                                     Hủy
@@ -282,16 +298,16 @@ export default function OrdersListPage() {
                 </Dialog>
             </div>
             <div id="printable-invoice" className="absolute -left-[9999px] top-0 print:static print:left-0 print:block print:w-full p-4 bg-white text-black">
-                <PrintInvoice orders={orders} ordersDetail={ordersDetail} transaction={transaction} />
+                <PrintInvoice orders={orders} ordersDetail={ordersDetail} transaction={transaction} commissionFeePercent={commissionFeePercent} />
             </div>
         </>
     )
 }
 
-function PrintInvoice({ orders, ordersDetail, transaction }: any) {
+function PrintInvoice({ orders, ordersDetail, transaction, commissionFeePercent }: any) {
     const allItems = Object.values(ordersDetail).flatMap((detail: any) => detail?.orderItems || [])
     const totalAmount = orders.reduce((sum: number, order: any) => sum + (order.totalAmount || 0), 0)
-    const platformFee = totalAmount * 0.05
+    const platformFee = totalAmount * (commissionFeePercent / 100)
     const netAmount = totalAmount - platformFee
 
     const itemsBySupplier = allItems.reduce((acc: any, item: any) => {
@@ -359,7 +375,7 @@ function PrintInvoice({ orders, ordersDetail, transaction }: any) {
                     <span className="font-medium">{new Intl.NumberFormat('vi-VN').format(totalAmount)} đ</span>
                 </div>
                 <div className="flex justify-between text-xs text-red-600 mb-2">
-                    <span>Phí nền tảng (5%):</span>
+                    <span>Phí nền tảng ({commissionFeePercent}%):</span>
                     <span>- {new Intl.NumberFormat('vi-VN').format(platformFee)} đ</span>
                 </div>
                 <div className="flex justify-between font-bold border-t pt-2">
@@ -369,7 +385,7 @@ function PrintInvoice({ orders, ordersDetail, transaction }: any) {
             </div>
 
             <div className="text-xs text-gray-600 text-center">
-                • Số tiền trên đã trừ 5% phí nền tảng
+                • Số tiền trên đã trừ {commissionFeePercent}% phí nền tảng
             </div>
         </div>
     )

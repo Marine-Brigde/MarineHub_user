@@ -36,6 +36,12 @@ export const getSupplierByIdApi = async (id: string) => {
     return response.data
 }
 
+// 🏢 Lấy chi tiết Supplier của người dùng hiện tại (GET /api/v1/suppliers/detail)
+export const getSupplierDetailApi = async () => {
+    const response = await axiosClient.get<BaseResponse<Supplier>>(`/v1/suppliers/detail`)
+    return response.data
+}
+
 // 🏢 Lấy danh sách sản phẩm theo supplier (GET /api/v1/suppliers/{id}/products)
 export const getSupplierProductsByIdApi = async (
     supplierId: string,

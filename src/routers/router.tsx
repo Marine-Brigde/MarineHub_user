@@ -32,6 +32,7 @@ import PaymentFailedPage from '@/page/payment/failed';
 import RepairShopBookingsPage from '@/page/repair-shop/bookings/bookings';
 import RepairShopBookingDetailPage from '@/page/repair-shop/bookings/bookingDetail';
 import TransactionsList from '@/components/transaction/transactions-list';
+import TransactionDetailPage from '@/page/repair-shop/transactions/transaction-detail';
 import OrdersListPage from '@/page/supplier/orders-list/orders-list';
 import OrderDetailPage from '@/page/supplier/order-detail/order-detail';
 import { TransactionsDashboard } from '@/components/supplier/transactions-dashboard';
@@ -83,6 +84,7 @@ const router = createBrowserRouter([
             { path: 'bookings', element: <RepairShopBookingsPage /> },
             { path: 'bookings/:id', element: <RepairShopBookingDetailPage /> },
             { path: 'transactions', element: <TransactionsList /> },
+            { path: 'transactions/:id', element: <TransactionDetailPage /> },
             { path: 'profile', element: <BoatyardProfilePage /> },
             { path: 'complaints', element: <BoatyardComplaintsPage /> },
             { path: 'success', element: <PaymentSuccessPage /> },
@@ -187,7 +189,8 @@ const router = createBrowserRouter([
             </ProtectedRoute>
         )
     },
-    {        path: '/supplier/orders-list/:transactionId',
+    {
+        path: '/supplier/orders-list/:transactionId',
         element: (
             <ProtectedRoute allowedRole="Supplier">
                 <SupplierLayout>
@@ -206,7 +209,8 @@ const router = createBrowserRouter([
             </ProtectedRoute>
         )
     },
-    {        path: '/success',
+    {
+        path: '/success',
         element: <PaymentSuccessPage />,
     },
     {

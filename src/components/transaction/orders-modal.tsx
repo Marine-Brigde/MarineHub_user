@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { Loader2 } from "lucide-react"
 import { type Transaction } from "@/api/Transaction/transactionApi"
 import { getOrdersApi } from "@/api/Order/orderApi"
+import { getSupplierDetailApi } from "@/api/Supplier/supplierApi"
 
 interface OrdersModalProps {
     open: boolean
@@ -28,6 +29,7 @@ export function OrdersModal({ open, onOpenChange, transaction }: OrdersModalProp
     const [ordersData, setOrdersData] = useState<any>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [commissionFeePercent, setCommissionFeePercent] = useState<number>(5)
 
     useEffect(() => {
         if (!open || !transaction) {
@@ -35,6 +37,21 @@ export function OrdersModal({ open, onOpenChange, transaction }: OrdersModalProp
             setError(null)
             return
         }
+
+        // Fetch supplier detail to get commission fee percent
+        const fetchSupplierDetail = async () => {
+            try {
+                const res = await getSupplierDetailApi()
+                if (res.status === 200 && res.data?.commissionFeePercent) {
+                    setCommissionFeePercent(res.data.commissionFeePercent)
+                }
+            } catch (err) {
+                console.error('fetchSupplierDetail', err)
+                // Keep default 5% if fetch fails
+            }
+        }
+
+        fetchSupplierDetail()
 
         const loadOrders = async () => {
             setLoading(true)
@@ -116,7 +133,7 @@ export function OrdersModal({ open, onOpenChange, transaction }: OrdersModalProp
                                                 <TableHead className="text-sm font-semibold">Mã đơn hàng</TableHead>
                                                 <TableHead className="text-sm font-semibold">Trạng thái</TableHead>
                                                 <TableHead className="text-sm font-semibold">Ngày tạo</TableHead>
-                                                <TableHead className="text-sm font-semibold">Tổng tiền</TableHead>
+                                                <TableHead className="text-sm font-semibold" title={`Phí hoa hồng: ${commissionFeePercent}%`}>Tổng tiền</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>

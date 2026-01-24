@@ -1,9 +1,11 @@
 "use client"
 
 import { useEffect, useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
     Pagination,
@@ -17,7 +19,6 @@ import {
 import { Loader2, Filter, TrendingUp } from 'lucide-react'
 import { getTransactionsApi, type Transaction, type TransactionStatus, type TransactionType } from '@/api/Transaction/transactionApi'
 import { useToast } from '@/hooks/use-toast'
-import { OrdersModal } from './orders-modal'
 
 const TRANSACTION_STATUSES: TransactionStatus[] = ['Pending', 'Approved', 'Rejected', 'Processing']
 const TRANSACTION_TYPES: TransactionType[] = ['Revenue', 'Boatyard', 'Supplier']
@@ -27,8 +28,7 @@ export default function TransactionsList() {
     const [allTransactions, setAllTransactions] = useState<Transaction[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
-    const [showOrdersModal, setShowOrdersModal] = useState(false)
+    const navigate = useNavigate()
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1)
@@ -259,7 +259,7 @@ export default function TransactionsList() {
                                             <TableHead className="text-base font-semibold">Số tiền</TableHead>
                                             <TableHead className="text-base font-semibold">Trạng thái</TableHead>
                                             <TableHead className="text-base font-semibold">Ngày tạo</TableHead>
-                                            <TableHead className="text-base font-semibold">Số đơn hàng</TableHead>
+                                            <TableHead className="text-base font-semibold text-right">Chi tiết</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -270,40 +270,42 @@ export default function TransactionsList() {
                                                 </TableCell>
                                             </TableRow>
                                         ) : (
-                                            paginatedTransactions.map((transaction) => (
-                                                <TableRow
-                                                    key={transaction.id}
-                                                    className="hover:bg-muted/50"
-                                                    onClick={() => {
-                                                        if (transaction.type === 'Supplier') {
-                                                            setSelectedTransaction(transaction)
-                                                            setShowOrdersModal(true)
-                                                        }
-                                                    }}
-                                                    style={transaction.type === 'Supplier' ? { cursor: 'pointer' } : {}}
-                                                >
-                                                    <TableCell className="font-medium py-4 font-mono text-sm">
-                                                        #{getShortId(transaction.id)}
-                                                    </TableCell>
-                                                    <TableCell className="py-4">{renderType(transaction.type)}</TableCell>
-                                                    <TableCell className="py-4 text-sm font-medium text-primary">
-                                                        {transaction.amount?.toLocaleString('vi-VN')} đ
-                                                    </TableCell>
-                                                    <TableCell className="py-4">{renderStatus(transaction.status)}</TableCell>
-                                                    <TableCell className="py-4 text-sm text-muted-foreground">
-                                                        {new Date(transaction.createdDate).toLocaleDateString('vi-VN')}
-                                                    </TableCell>
-                                                    <TableCell className="py-4 text-sm">
-                                                        {transaction.type === 'Supplier' ? (
-                                                            <span className="text-blue-600 font-medium cursor-pointer hover:underline">
-                                                                Xem đơn hàng
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-muted-foreground">-</span>
-                                                        )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))
+                                            paginatedTransactions.map((transaction) => {
+                                                const typeKey = (transaction.type || '').toLowerCase()
+                                                const isRevenue = typeKey === 'revenue'
+                                                return (
+                                                    <TableRow
+                                                        key={transaction.id}
+                                                        className="hover:bg-muted/50"
+                                                    >
+                                                        <TableCell className="font-medium py-4 font-mono text-sm">
+                                                            #{getShortId(transaction.id)}
+                                                        </TableCell>
+                                                        <TableCell className="py-4">{renderType(transaction.type)}</TableCell>
+                                                        <TableCell className="py-4 text-sm font-medium text-primary">
+                                                            {transaction.amount?.toLocaleString('vi-VN')} đ
+                                                        </TableCell>
+                                                        <TableCell className="py-4">{renderStatus(transaction.status)}</TableCell>
+                                                        <TableCell className="py-4 text-sm text-muted-foreground">
+                                                            {new Date(transaction.createdDate).toLocaleDateString('vi-VN')}
+                                                        </TableCell>
+                                                        <TableCell className="py-4 text-sm text-right">
+                                                            {isRevenue ? (
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    className="print-hidden"
+                                                                    onClick={() => navigate(`/repair-shop/transactions/${transaction.id}`, { state: { transaction } })}
+                                                                >
+                                                                    Xem chi tiết
+                                                                </Button>
+                                                            ) : (
+                                                                <span className="text-muted-foreground">-</span>
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )
+                                            })
                                         )}
                                     </TableBody>
                                 </Table>
@@ -368,12 +370,6 @@ export default function TransactionsList() {
                     )}
                 </CardContent>
             </Card>
-
-            <OrdersModal
-                open={showOrdersModal}
-                onOpenChange={setShowOrdersModal}
-                transaction={selectedTransaction}
-            />
         </div>
     )
 }

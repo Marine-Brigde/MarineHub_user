@@ -14,7 +14,7 @@ import {
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { getOrdersApi } from "@/api/Order/orderApi"
 import { getRevenuesApi } from "@/api/repairShop/revenueApi"
 import { getTransactionsApi, type Transaction } from "@/api/Transaction/transactionApi"
@@ -51,7 +51,6 @@ export function SupplierDashboard() {
     const [rawRevenues, setRawRevenues] = useState<MonthlyRevenue[]>([])
     const [ordersCount, setOrdersCount] = useState<number | null>(null)
     const [latestOrders, setLatestOrders] = useState<OrderResponseData[]>([])
-    const [totalRevenue, setTotalRevenue] = useState<number>(0)
     const [transactions, setTransactions] = useState<Transaction[]>([])
     const [transactionsLoading, setTransactionsLoading] = useState(false)
     const [transactionsError, setTransactionsError] = useState<string | null>(null)
@@ -74,10 +73,6 @@ export function SupplierDashboard() {
             })
             const items: MonthlyRevenue[] = (res as any)?.data ?? []
             setRawRevenues(items)
-
-            // Tính tổng revenue từ revenue API (để đảm bảo khớp với dashboard)
-            const totalRevenueFromApi = items.reduce((sum, item) => sum + (Number(item.totalRevenue || 0)), 0)
-            setTotalRevenue(totalRevenueFromApi)
 
             // map to chart format: show month label as T{month}
             const mapped = items.map((it) => ({ month: `T${it.month}`, revenue: Number(it.totalRevenue || 0) }))
@@ -145,9 +140,21 @@ export function SupplierDashboard() {
         setTransactionsLoading(true)
         setTransactionsError(null)
         try {
-            const res = await getTransactionsApi({ page: 1, size: 10, sortBy: "createdDate", isAsc: false })
+            const res = await getTransactionsApi({ page: 1, size: 1000, sortBy: "createdDate", isAsc: false })
             const items: Transaction[] = (res as any)?.data?.items ?? []
-            setTransactions(items)
+            const filtered = items.filter((tx) => {
+                const typeKey = (tx.type || '').toLowerCase()
+                if (!['supplier', 'revenue'].includes(typeKey)) return false
+                return true
+            })
+            console.log('loadTransactions filtered items:', filtered)
+            console.log('Daily TX map should be:', filtered.map(tx => {
+                const txDate = tx.createdDate ? new Date(tx.createdDate) : tx.lastModifiedDate ? new Date(tx.lastModifiedDate) : null
+                if (!txDate) return null
+                const dayKey = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}-${String(txDate.getDate()).padStart(2, '0')}`
+                return { dayKey, amount: tx.amount }
+            }))
+            setTransactions(filtered)
         } catch (err) {
             console.error("loadTransactions error", err)
             setTransactionsError("Không thể tải giao dịch")
@@ -161,6 +168,23 @@ export function SupplierDashboard() {
         loadTransactions()
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
+
+    const { monthlyNetByTx, dailyNetByTx } = useMemo(() => {
+        const monthMap: Record<string, number> = {}
+        const dayMap: Record<string, number> = {}
+        transactions.forEach((tx) => {
+            const txDate = tx.createdDate ? new Date(tx.createdDate) : tx.lastModifiedDate ? new Date(tx.lastModifiedDate) : null
+            if (!txDate) return
+            const monthKey = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}`
+            const dayKey = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}-${String(txDate.getDate()).padStart(2, '0')}`
+            const amt = Number(tx.amount || 0)
+            monthMap[monthKey] = (monthMap[monthKey] || 0) + amt
+            dayMap[dayKey] = (dayMap[dayKey] || 0) + amt
+        })
+        return { monthlyNetByTx: monthMap, dailyNetByTx: dayMap }
+    }, [transactions])
+
+    const displayedTransactions = useMemo(() => transactions.slice(0, 10), [transactions])
 
     return (
         <div className="flex flex-col gap-4 p-4 md:p-6">
@@ -205,7 +229,10 @@ export function SupplierDashboard() {
                                 <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                             </div>
                             <div>
-                                <Button onClick={() => loadOrders(startDate, endDate)} disabled={revLoading}>
+                                <Button onClick={() => {
+                                    loadOrders(startDate, endDate)
+                                    loadTransactions()
+                                }} disabled={revLoading}>
                                     {revLoading ? <Loader2 className="animate-spin h-4 w-4" /> : 'Tải'}
                                 </Button>
                                 {ordersCount !== null && (
@@ -234,17 +261,7 @@ export function SupplierDashboard() {
                         )}
                         {revError && <div className="text-sm text-destructive mt-2">{revError}</div>}
                         {/* Total Revenue Summary */}
-                        <div className="mt-4 p-3 bg-primary/5 rounded-lg">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm font-semibold">Tổng doanh thu:</span>
-                                <span className="text-lg font-bold text-primary">
-                                    {totalRevenue.toLocaleString('vi-VN')} đ
-                                </span>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Tổng doanh thu trong khoảng thời gian đã chọn (từ Revenue API)
-                            </p>
-                        </div>
+
                         {/* Detailed revenues table */}
                         <div className="mt-4">
                             <h4 className="text-sm font-semibold mb-2">Chi tiết doanh thu theo tháng</h4>
@@ -268,7 +285,21 @@ export function SupplierDashboard() {
                                             <td className="py-2">{`T${r.month}`}</td>
                                             <td className="py-2">{r.year}</td>
                                             <td className="py-2 text-right">{Number(r.totalRevenue).toLocaleString('vi-VN')} đ</td>
-                                            <td className="py-2 text-right">{Number(r.netRevenue ?? r.totalRevenue ?? 0).toLocaleString('vi-VN')} đ</td>
+                                            <td className="py-2 text-right">
+                                                {(() => {
+                                                    const monthKey = `${r.year}-${String(r.month).padStart(2, '0')}`
+                                                    const transferDateKey = r.transferredDate ? (() => {
+                                                        const d = new Date(r.transferredDate)
+                                                        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+                                                    })() : null
+                                                    const netFromTxDaily = transferDateKey ? Number(dailyNetByTx[transferDateKey] || 0) : 0
+                                                    const netFromTxMonthly = Number(monthlyNetByTx[monthKey] || 0)
+                                                    const netFromRevenue = Number(r.netRevenue ?? r.totalRevenue ?? 0)
+                                                    const txValue = netFromTxDaily || netFromTxMonthly
+                                                    const value = r.isTransferred ? (txValue || netFromRevenue) : netFromRevenue
+                                                    return value.toLocaleString('vi-VN') + ' đ'
+                                                })()}
+                                            </td>
                                             <td className="py-2 text-center">
                                                 {r.isTransferred ? (
                                                     <Badge variant="outline" className="border-emerald-500/50 text-emerald-700 bg-emerald-500/10">
@@ -388,11 +419,11 @@ export function SupplierDashboard() {
                                 </div>
                             ) : transactionsError ? (
                                 <div className="text-sm text-destructive">{transactionsError}</div>
-                            ) : transactions.length === 0 ? (
+                            ) : displayedTransactions.length === 0 ? (
                                 <div className="text-sm text-muted-foreground">Chưa có giao dịch</div>
                             ) : (
                                 <div className="space-y-3">
-                                    {transactions.map((tx) => (
+                                    {displayedTransactions.map((tx) => (
                                         <div key={tx.id} className="rounded-lg border border-border/50 p-3 flex items-center justify-between gap-3">
                                             <div className="space-y-1 flex-1 min-w-0">
                                                 <p className="text-sm font-medium text-foreground line-clamp-1">{tx.transactionReference}</p>

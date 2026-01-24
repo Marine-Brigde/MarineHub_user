@@ -18,6 +18,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Loader2, RefreshCcw, Eye } from "lucide-react"
 import { getTransactionsApi, type Transaction } from "@/api/Transaction/transactionApi"
 
+
 const statusVariant = (status?: string) => {
     switch ((status || '').toLowerCase()) {
         case 'approved':
@@ -58,9 +59,9 @@ const fmtCurrency = (n: number) => new Intl.NumberFormat('vi-VN').format(n)
 const fmtDate = (d: string) => {
     try {
         const date = new Date(d)
-        return date.toLocaleString('vi-VN', { 
-            hour: '2-digit', 
-            minute: '2-digit', 
+        return date.toLocaleString('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
             second: '2-digit',
             day: '2-digit',
             month: '2-digit',

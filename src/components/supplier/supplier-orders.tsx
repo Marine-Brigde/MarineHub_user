@@ -474,6 +474,35 @@ export default function SupplierOrders() {
 
                                         <Separator />
 
+                                        {/* Order Items */}
+                                        {(() => {
+                                            const items = (selectedOrder.orderItems ?? selectedOrder.items) || []
+                                            return items.length > 0 && (
+                                                <>
+                                                    <div className="space-y-1">
+                                                        <div className="text-sm text-muted-foreground">Sản phẩm đã đặt</div>
+                                                        <div className="space-y-2">
+                                                            {items.map((item: any, idx: number) => (
+                                                                <div key={item.id || idx} className="border rounded p-3 bg-muted/30">
+                                                                    <div className="flex justify-between items-start gap-2">
+                                                                        <div className="flex-1">
+                                                                            <p className="text-sm font-medium text-foreground">{item.productVariantName || item.productOptionName || 'Sản phẩm'}</p>
+                                                                            <p className="text-xs text-muted-foreground mt-1">Nhà cung cấp: {item.supplierName || 'N/A'}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex justify-between items-center mt-2 pt-2 border-t border-muted">
+                                                                        <span className="text-xs text-muted-foreground">Số lượng: {item.quantity}</span>
+                                                                        <span className="text-sm font-semibold text-primary">{item.price?.toLocaleString('vi-VN') || 0} đ</span>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    <Separator />
+                                                </>
+                                            )
+                                        })()}
+
                                         <div className="flex justify-between items-center">
                                             <div className="text-sm text-muted-foreground">Tổng tiền</div>
                                             <div className="text-xl font-bold text-primary">{selectedOrder.totalAmount?.toLocaleString('vi-VN') || 0} đ</div>

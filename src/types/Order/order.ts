@@ -24,6 +24,9 @@ export interface OrderResponseData {
 export type OrderStatus = 'Pending' | 'Approved' | 'Delivered' | 'Completed' | 'Rejected'
 
 export interface OrderItemResponse {
+    id?: string
+    supplierId?: string
+    supplierName?: string
     productVariantId?: string
     productVariantName?: string
     quantity?: number
@@ -34,10 +37,13 @@ export interface OrderItemResponse {
 // Extended order response for detail endpoints
 export interface OrderDetailResponseData extends OrderResponseData {
     shipId?: string | null
-    boatyardId?: string
+    boatyardId?: string | null
     orderCode?: string
     createdDate?: string
+    longitude?: string
+    latitude?: string
     items?: OrderItemResponse[]
+    orderItems?: OrderItemResponse[]
 }
 
 export interface BaseResponse<T> {

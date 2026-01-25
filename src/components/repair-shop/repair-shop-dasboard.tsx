@@ -48,7 +48,7 @@ export function RepairShopDashboard() {
     const [revenueData, setRevenueData] = useState<{ month: string; revenue: number }[]>([])
     const [revLoading, setRevLoading] = useState(false)
     const [revError, setRevError] = useState<string | null>(null)
-    const [commissionFeePercent, setCommissionFeePercent] = useState<number>(5)
+    const [, setCommissionFeePercent] = useState<number>(5)
     const [startDate, setStartDate] = useState<string>(() => {
         const d = new Date()
         d.setDate(1) // Ngày đầu tháng
@@ -317,7 +317,7 @@ export function RepairShopDashboard() {
                                                     <th className="p-2">Thời gian vào</th>
                                                     <th className="p-2">Thời gian ra</th>
                                                     <th className="p-2 text-right">Tổng tiền</th>
-                                                    <th className="p-2">Lợi nhuận ròng</th>
+
                                                     <th className="p-2">Trạng thái</th>
                                                 </tr>
                                             </thead>
@@ -333,7 +333,7 @@ export function RepairShopDashboard() {
                                                         <td className="p-2">{bk.startTime ? new Date(bk.startTime).toLocaleString('vi-VN') : 'N/A'}</td>
                                                         <td className="p-2">{bk.endTime ? new Date(bk.endTime).toLocaleString('vi-VN') : 'N/A'}</td>
                                                         <td className="p-2 text-right">{Number(bk.totalAmount || 0).toLocaleString('vi-VN')} đ</td>
-                                                        <td className="p-2 text-right" title={`Tổng tiền - Phí nền tảng (${commissionFeePercent}%)`}>{Number((bk.totalAmount || 0) * (1 - commissionFeePercent / 100)).toLocaleString('vi-VN')} đ</td>
+
                                                         <td className="p-2">
                                                             <Badge variant={renderBookingStatus(bk.status).variant}>
                                                                 {renderBookingStatus(bk.status).label}
